@@ -8,9 +8,7 @@
     <title>Expensio | Your Personal Finance Space</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         :root {
             --bg: #faf8ff;
@@ -38,9 +36,7 @@
             min-height: 100vh;
         }
 
-        button, input, select, textarea {
-            font: inherit;
-        }
+        button, input, select, textarea { font: inherit; }
 
         header {
             padding: 22px max(6%, calc((100% - 1200px) / 2));
@@ -63,9 +59,7 @@
             letter-spacing: -1.2px;
         }
 
-        .brand span {
-            color: #23a981;
-        }
+        .brand span { color: #23a981; }
 
         .tagline {
             margin: 2px 0 0;
@@ -89,9 +83,7 @@
             padding: 0 24px 48px;
         }
 
-        .welcome {
-            margin-bottom: 26px;
-        }
+        .welcome { margin-bottom: 26px; }
 
         .eyebrow {
             color: var(--primary);
@@ -172,9 +164,7 @@
             border: 1px solid #d7f0e4;
         }
 
-        .count-card h3 {
-            color: #218666;
-        }
+        .count-card h3 { color: #218666; }
 
         .layout {
             display: grid;
@@ -217,9 +207,7 @@
             flex-shrink: 0;
         }
 
-        .heading-icon.mint {
-            background: var(--mint);
-        }
+        .heading-icon.mint { background: var(--mint); }
 
         .panel h2 {
             margin: 0;
@@ -258,10 +246,7 @@
             box-shadow: 0 0 0 4px rgba(118, 87, 216, 0.10);
         }
 
-        textarea {
-            min-height: 82px;
-            resize: vertical;
-        }
+        textarea { min-height: 82px; resize: vertical; }
 
         .primary {
             width: 100%;
@@ -283,9 +268,46 @@
             box-shadow: 0 7px 17px rgba(118, 87, 216, 0.25);
         }
 
-        .primary:disabled {
-            opacity: 0.65;
-            cursor: wait;
+        .primary:disabled { opacity: 0.65; cursor: wait; }
+
+        /* Expense filter controls */
+        .expense-filters {
+            padding: 16px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #faf9fd;
+        }
+
+        .expense-filters label { margin-top: 10px; }
+        .expense-filters label:first-child { margin-top: 0; }
+
+        .filter-dates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .filter-actions .primary {
+            flex: 1;
+            width: auto;
+            margin-top: 0;
+        }
+
+        .filter-clear {
+            padding: 10px 13px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: white;
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
         }
 
         .expense {
@@ -328,13 +350,8 @@
             overflow-wrap: anywhere;
         }
 
-        .meta {
-            margin: 5px 0 0;
-        }
-
-        .description {
-            margin: 12px 0 0;
-        }
+        .meta { margin: 5px 0 0; }
+        .description { margin: 12px 0 0; }
 
         .delete {
             background: #fff0f2;
@@ -348,9 +365,7 @@
             cursor: pointer;
         }
 
-        .delete:hover {
-            background: #ffe1e7;
-        }
+        .delete:hover { background: #ffe1e7; }
 
         .empty {
             padding: 25px 14px;
@@ -362,14 +377,9 @@
             font-size: 14px;
         }
 
-        #message {
-            margin: 13px 0 0;
-            font-size: 13px;
-        }
+        #message { margin: 13px 0 0; font-size: 13px; }
 
-        .category-row {
-            margin: 18px 0;
-        }
+        .category-row { margin: 18px 0; }
 
         .category-info {
             display: flex;
@@ -379,14 +389,8 @@
             font-size: 13px;
         }
 
-        .category-info strong {
-            overflow-wrap: anywhere;
-        }
-
-        .category-info span {
-            color: var(--muted);
-            white-space: nowrap;
-        }
+        .category-info strong { overflow-wrap: anywhere; }
+        .category-info span { color: var(--muted); white-space: nowrap; }
 
         .progress-track {
             height: 9px;
@@ -442,11 +446,7 @@
             transition: height 0.3s ease;
         }
 
-        .chart-label {
-            color: var(--muted);
-            font-size: 11px;
-            text-align: center;
-        }
+        .chart-label { color: var(--muted); font-size: 11px; text-align: center; }
 
         footer {
             text-align: center;
@@ -455,62 +455,30 @@
             font-size: 12px;
         }
 
-        button:focus-visible {
-            outline: 3px solid #bba9fa;
-            outline-offset: 3px;
-        }
+        button:focus-visible { outline: 3px solid #bba9fa; outline-offset: 3px; }
 
         @media (max-width: 850px) {
-            .analytics-grid {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
+            .analytics-grid { grid-template-columns: 1fr; gap: 16px; }
         }
 
         @media (max-width: 760px) {
-            header {
-                padding: 20px;
-            }
+            header { padding: 20px; }
+            main { margin: 26px auto; padding: 0 15px 35px; }
+            .summary-grid, .layout { grid-template-columns: 1fr; gap: 16px; }
+            .panel, .summary { padding: 21px; border-radius: 17px; }
+            .local-badge { font-size: 10px; padding: 6px 9px; }
+        }
 
-            main {
-                margin: 26px auto;
-                padding: 0 15px 35px;
-            }
-
-            .summary-grid,
-            .layout {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .panel, .summary {
-                padding: 21px;
-                border-radius: 17px;
-            }
-
-            .local-badge {
-                font-size: 10px;
-                padding: 6px 9px;
-            }
+        @media (max-width: 420px) {
+            .filter-dates { grid-template-columns: 1fr; gap: 0; }
+            .filter-actions { flex-direction: column; }
         }
 
         @media (max-width: 390px) {
-            .brand {
-                font-size: 25px;
-            }
-
-            .tagline {
-                font-size: 12px;
-            }
-
-            .local-badge {
-                white-space: normal;
-                text-align: center;
-            }
-
-            .category-info {
-                flex-wrap: wrap;
-            }
+            .brand { font-size: 25px; }
+            .tagline { font-size: 12px; }
+            .local-badge { white-space: normal; text-align: center; }
+            .category-info { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -540,17 +508,12 @@
             <div class="summary">
                 <p class="summary-label">Total recorded spending</p>
                 <h3 id="total">₹0.00</h3>
-                <p class="summary-note">
-                    Calculated from all your saved expenses.
-                </p>
+                <p class="summary-note">Calculated from all your saved expenses.</p>
             </div>
-
             <div class="summary count-card">
                 <p class="summary-label">Expenses recorded</p>
                 <h3 id="expense-count">0</h3>
-                <p class="summary-note">
-                    Every little detail counts.
-                </p>
+                <p class="summary-note">Every little detail counts.</p>
             </div>
         </section>
 
@@ -563,7 +526,6 @@
                         <p class="panel-subtitle">Spending by category</p>
                     </div>
                 </div>
-
                 <div id="category-breakdown">
                     <p class="empty">Loading categories...</p>
                 </div>
@@ -574,12 +536,9 @@
                     <div class="heading-icon mint">▥</div>
                     <div>
                         <h2>Monthly spending</h2>
-                        <p class="panel-subtitle">
-                            Your spending over the last six months
-                        </p>
+                        <p class="panel-subtitle">Your spending over the last six months</p>
                     </div>
                 </div>
-
                 <div id="monthly-chart">
                     <p class="empty">Loading monthly spending...</p>
                 </div>
@@ -592,32 +551,18 @@
                     <div class="heading-icon">✎</div>
                     <div>
                         <h2>Add an expense</h2>
-                        <p class="panel-subtitle">
-                            Record where your money goes.
-                        </p>
+                        <p class="panel-subtitle">Record where your money goes.</p>
                     </div>
                 </div>
 
                 <form id="expense-form">
                     <label for="title">Expense name</label>
-                    <input
-                        id="title"
-                        name="title"
-                        maxlength="120"
-                        placeholder="e.g. Lunch with friends"
-                        required
-                    >
+                    <input id="title" name="title" maxlength="120"
+                           placeholder="e.g. Lunch with friends" required>
 
                     <label for="amount">Amount (₹)</label>
-                    <input
-                        id="amount"
-                        name="amount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        placeholder="e.g. 250.00"
-                        required
-                    >
+                    <input id="amount" name="amount" type="number" min="0.01"
+                           step="0.01" placeholder="e.g. 250.00" required>
 
                     <label for="category">Category</label>
                     <select id="category" name="category" required>
@@ -633,29 +578,16 @@
                     </select>
 
                     <label for="expense_date">Date</label>
-                    <input
-                        id="expense_date"
-                        name="expense_date"
-                        type="date"
-                        required
-                    >
+                    <input id="expense_date" name="expense_date" type="date" required>
 
                     <label for="description">Description (optional)</label>
-                    <textarea
-                        id="description"
-                        name="description"
-                        placeholder="Add a little note about this expense..."
-                    ></textarea>
+                    <textarea id="description" name="description"
+                              placeholder="Add a little note about this expense..."></textarea>
 
-                    <button
-                        class="primary"
-                        id="submit-button"
-                        type="submit"
-                    >
+                    <button class="primary" id="submit-button" type="submit">
                         + Save expense
                     </button>
                 </form>
-
                 <p id="message" role="status" aria-live="polite"></p>
             </section>
 
@@ -664,9 +596,43 @@
                     <div class="heading-icon mint">↗</div>
                     <div>
                         <h2>Your expenses</h2>
-                        <p class="panel-subtitle">
-                            Your spending, all in one place.
-                        </p>
+                        <p class="panel-subtitle">Your spending, all in one place.</p>
+                    </div>
+                </div>
+
+                <!-- Category and date filters -->
+                <div class="expense-filters">
+                    <label for="filter-category">Filter by category</label>
+                    <select id="filter-category">
+                        <option value="">All categories</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Education">Education</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <div class="filter-dates">
+                        <div>
+                            <label for="filter-start-date">From date</label>
+                            <input id="filter-start-date" type="date">
+                        </div>
+                        <div>
+                            <label for="filter-end-date">To date</label>
+                            <input id="filter-end-date" type="date">
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="primary" id="apply-filters" type="button">
+                            Apply filters
+                        </button>
+                        <button class="filter-clear" id="clear-filters" type="button">
+                            Clear filters
+                        </button>
                     </div>
                 </div>
 
@@ -677,9 +643,7 @@
         </div>
     </main>
 
-    <footer>
-        Made for a clearer view of your money · Expensio
-    </footer>
+    <footer>Made for a clearer view of your money · Expensio</footer>
 
     <script>
         const form = document.getElementById("expense-form");
@@ -688,6 +652,12 @@
         const countElement = document.getElementById("expense-count");
         const message = document.getElementById("message");
         const submitButton = document.getElementById("submit-button");
+
+        const filterCategory = document.getElementById("filter-category");
+        const filterStartDate = document.getElementById("filter-start-date");
+        const filterEndDate = document.getElementById("filter-end-date");
+        const applyFiltersButton = document.getElementById("apply-filters");
+        const clearFiltersButton = document.getElementById("clear-filters");
 
         const today = new Date();
         const localToday = new Date(
@@ -717,8 +687,7 @@
             if (expenses.length === 0) {
                 const empty = document.createElement("p");
                 empty.className = "empty";
-                empty.textContent =
-                    "Add expenses to see your category breakdown.";
+                empty.textContent = "Add expenses to see your category breakdown.";
                 container.appendChild(empty);
                 return;
             }
@@ -727,17 +696,11 @@
 
             expenses.forEach(expense => {
                 const category = expense.category;
-                totals[category] =
-                    (totals[category] || 0) + Number(expense.amount);
+                totals[category] = (totals[category] || 0) + Number(expense.amount);
             });
 
-            const categories = Object.entries(totals)
-                .sort((a, b) => b[1] - a[1]);
-
-            const grandTotal = categories.reduce(
-                (sum, item) => sum + item[1],
-                0
-            );
+            const categories = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+            const grandTotal = categories.reduce((sum, item) => sum + item[1], 0);
 
             categories.forEach(([category, amount]) => {
                 const row = document.createElement("div");
@@ -749,14 +712,9 @@
                 const name = document.createElement("strong");
                 name.textContent = category;
 
-                const percentage = grandTotal > 0
-                    ? amount / grandTotal * 100
-                    : 0;
-
+                const percentage = grandTotal > 0 ? amount / grandTotal * 100 : 0;
                 const value = document.createElement("span");
-                value.textContent =
-                    `${formatMoney(amount)} · ${percentage.toFixed(1)}%`;
-
+                value.textContent = `${formatMoney(amount)} · ${percentage.toFixed(1)}%`;
                 info.append(name, value);
 
                 const track = document.createElement("div");
@@ -789,20 +747,16 @@
                 months.push({
                     year: monthDate.getFullYear(),
                     month: monthDate.getMonth(),
-                    label: monthDate.toLocaleDateString("en-IN", {
-                        month: "short"
-                    }),
+                    label: monthDate.toLocaleDateString("en-IN", { month: "short" }),
                     total: 0
                 });
             }
 
             expenses.forEach(expense => {
                 const parts = expense.expense_date.split("-").map(Number);
-                const year = parts[0];
-                const month = parts[1] - 1;
 
                 const matchingMonth = months.find(item =>
-                    item.year === year && item.month === month
+                    item.year === parts[0] && item.month === parts[1] - 1
                 );
 
                 if (matchingMonth) {
@@ -810,10 +764,7 @@
                 }
             });
 
-            const maxTotal = Math.max(
-                ...months.map(item => item.total),
-                1
-            );
+            const maxTotal = Math.max(...months.map(item => item.total), 1);
 
             const chart = document.createElement("div");
             chart.className = "chart";
@@ -829,9 +780,7 @@
 
                 const value = document.createElement("span");
                 value.className = "chart-value";
-                value.textContent = item.total
-                    ? formatMoney(item.total)
-                    : "₹0";
+                value.textContent = item.total ? formatMoney(item.total) : "₹0";
 
                 const barArea = document.createElement("div");
                 barArea.className = "chart-bar-area";
@@ -842,9 +791,7 @@
                     ? `${Math.max(item.total / maxTotal * 100, 4)}%`
                     : "3px";
 
-                bar.title =
-                    `${item.label} ${item.year}: ${formatMoney(item.total)}`;
-
+                bar.title = `${item.label} ${item.year}: ${formatMoney(item.total)}`;
                 barArea.appendChild(bar);
 
                 const label = document.createElement("span");
@@ -858,106 +805,156 @@
             container.appendChild(chart);
         }
 
+        function renderExpenseList(expenses, filtersActive) {
+            list.replaceChildren();
+
+            if (expenses.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "empty";
+                empty.textContent = filtersActive
+                    ? "No expenses match these filters. Try changing or clearing them."
+                    : "No expenses yet. Add your first one to get started! ✨";
+
+                list.appendChild(empty);
+                return;
+            }
+
+            expenses.forEach(expense => {
+                const card = document.createElement("article");
+                card.className = "expense";
+
+                const top = document.createElement("div");
+                top.className = "expense-top";
+
+                const details = document.createElement("div");
+
+                const title = document.createElement("h3");
+                title.textContent = expense.title;
+
+                const meta = document.createElement("p");
+                meta.className = "meta";
+                meta.textContent = `${expense.category} · ${expense.expense_date}`;
+
+                details.append(title, meta);
+
+                const amount = document.createElement("span");
+                amount.className = "amount";
+                amount.textContent = formatMoney(expense.amount);
+
+                top.append(details, amount);
+                card.appendChild(top);
+
+                if (expense.description) {
+                    const description = document.createElement("p");
+                    description.className = "description";
+                    description.textContent = expense.description;
+                    card.appendChild(description);
+                }
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "delete";
+                deleteButton.type = "button";
+                deleteButton.textContent = "Delete expense";
+
+                deleteButton.addEventListener("click", async () => {
+                    if (!confirm(`Delete "${expense.title}"?`)) {
+                        return;
+                    }
+
+                    deleteButton.disabled = true;
+
+                    try {
+                        const response = await fetch(
+                            `/api/expenses/${expense.id}`,
+                            { method: "DELETE" }
+                        );
+
+                        if (!response.ok) {
+                            const result = await response.json().catch(() => ({}));
+                            throw new Error(
+                                result.error || "Could not delete this expense."
+                            );
+                        }
+
+                        showMessage("Expense deleted successfully.");
+                        await loadExpenses();
+                    } catch (error) {
+                        showMessage(error.message, true);
+                        deleteButton.disabled = false;
+                    }
+                });
+
+                card.appendChild(deleteButton);
+                list.appendChild(card);
+            });
+        }
+
         async function loadExpenses() {
             list.replaceChildren();
 
-            try {
-                const response = await fetch("/api/expenses");
+            const filtersActive = Boolean(
+                filterCategory.value ||
+                filterStartDate.value ||
+                filterEndDate.value
+            );
 
-                if (!response.ok) {
-                    throw new Error("Could not load expenses.");
+            try {
+                /*
+                 * Fetch every expense first so dashboard totals and charts
+                 * continue to represent all saved expenses.
+                 */
+                const allResponse = await fetch("/api/expenses");
+
+                if (!allResponse.ok) {
+                    throw new Error("Could not load your expenses.");
                 }
 
-                const expenses = await response.json();
-                let total = 0;
+                const allExpenses = await allResponse.json();
 
-                expenses.forEach(expense => {
-                    total += Number(expense.amount);
-                });
+                const total = allExpenses.reduce(
+                    (sum, expense) => sum + Number(expense.amount),
+                    0
+                );
 
                 totalElement.textContent = formatMoney(total);
-                countElement.textContent = expenses.length;
+                countElement.textContent = allExpenses.length;
 
-                renderCategoryBreakdown(expenses);
-                renderMonthlyChart(expenses);
+                renderCategoryBreakdown(allExpenses);
+                renderMonthlyChart(allExpenses);
 
-                if (expenses.length === 0) {
-                    const empty = document.createElement("p");
-                    empty.className = "empty";
-                    empty.textContent =
-                        "No expenses yet. Add your first one to get started! ✨";
-                    list.appendChild(empty);
-                    return;
+                /*
+                 * Fetch the expense list with the selected filters.
+                 * The backend accepts category, start_date and end_date.
+                 */
+                const params = new URLSearchParams();
+
+                if (filterCategory.value) {
+                    params.set("category", filterCategory.value);
                 }
 
-                expenses.forEach(expense => {
-                    const card = document.createElement("article");
-                    card.className = "expense";
+                if (filterStartDate.value) {
+                    params.set("start_date", filterStartDate.value);
+                }
 
-                    const top = document.createElement("div");
-                    top.className = "expense-top";
+                if (filterEndDate.value) {
+                    params.set("end_date", filterEndDate.value);
+                }
 
-                    const details = document.createElement("div");
+                const queryString = params.toString();
+                const filteredUrl = queryString
+                    ? `/api/expenses?${queryString}`
+                    : "/api/expenses";
 
-                    const title = document.createElement("h3");
-                    title.textContent = expense.title;
+                const filteredResponse = await fetch(filteredUrl);
+                const filteredExpenses = await filteredResponse.json();
 
-                    const meta = document.createElement("p");
-                    meta.className = "meta";
-                    meta.textContent =
-                        `${expense.category} · ${expense.expense_date}`;
+                if (!filteredResponse.ok) {
+                    throw new Error(
+                        filteredExpenses.error || "Could not filter expenses."
+                    );
+                }
 
-                    details.append(title, meta);
-
-                    const amount = document.createElement("span");
-                    amount.className = "amount";
-                    amount.textContent = formatMoney(expense.amount);
-
-                    top.append(details, amount);
-                    card.appendChild(top);
-
-                    if (expense.description) {
-                        const description = document.createElement("p");
-                        description.className = "description";
-                        description.textContent = expense.description;
-                        card.appendChild(description);
-                    }
-
-                    const deleteButton = document.createElement("button");
-                    deleteButton.className = "delete";
-                    deleteButton.type = "button";
-                    deleteButton.textContent = "Delete expense";
-
-                    deleteButton.addEventListener("click", async () => {
-                        if (!confirm(`Delete "${expense.title}"?`)) {
-                            return;
-                        }
-
-                        deleteButton.disabled = true;
-
-                        try {
-                            const result = await fetch(
-                                `/api/expenses/${expense.id}`,
-                                { method: "DELETE" }
-                            );
-
-                            if (!result.ok) {
-                                throw new Error(
-                                    "Could not delete this expense."
-                                );
-                            }
-
-                            showMessage("Expense deleted successfully.");
-                            await loadExpenses();
-                        } catch (error) {
-                            showMessage(error.message, true);
-                            deleteButton.disabled = false;
-                        }
-                    });
-
-                    card.appendChild(deleteButton);
-                    list.appendChild(card);
-                });
+                renderExpenseList(filteredExpenses, filtersActive);
             } catch (error) {
                 list.replaceChildren();
 
@@ -970,6 +967,32 @@
                 showMessage(error.message, true);
             }
         }
+
+        applyFiltersButton.addEventListener("click", async () => {
+            if (
+                filterStartDate.value &&
+                filterEndDate.value &&
+                filterStartDate.value > filterEndDate.value
+            ) {
+                showMessage(
+                    "The From date cannot be after the To date.",
+                    true
+                );
+                return;
+            }
+
+            showMessage("");
+            await loadExpenses();
+        });
+
+        clearFiltersButton.addEventListener("click", async () => {
+            filterCategory.value = "";
+            filterStartDate.value = "";
+            filterEndDate.value = "";
+
+            showMessage("");
+            await loadExpenses();
+        });
 
         form.addEventListener("submit", async event => {
             event.preventDefault();
@@ -987,9 +1010,7 @@
             try {
                 const response = await fetch("/api/expenses", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
                 });
 

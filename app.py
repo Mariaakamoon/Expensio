@@ -195,16 +195,59 @@ def expenses():
         user = get_dev_user()
 
         if request.method == "GET":
+            query = select(Expense).where(
+                Expense.user_id == user.id
+            )
+
+            category_name = request.args.get("category", "").strip()
+            start_date = request.args.get("start_date", "").strip()
+            end_date = request.args.get("end_date", "").strip()
+
+            if category_name:
+                query = query.join(Expense.category).where(
+                    db.func.lower(Category.name)
+                    == category_name.lower()
+                )
+
+            if start_date:
+                try:
+                    parsed_start = date.fromisoformat(start_date)
+                except ValueError:
+                    return jsonify({
+                        "error": "start_date must use YYYY-MM-DD format."
+                    }), 400
+
+                query = query.where(
+                    Expense.expense_date >= parsed_start
+                )
+
+            if end_date:
+                try:
+                    parsed_end = date.fromisoformat(end_date)
+                except ValueError:
+                    return jsonify({
+                        "error": "end_date must use YYYY-MM-DD format."
+                    }), 400
+
+                query = query.where(
+                    Expense.expense_date <= parsed_end
+                )
+
+            if start_date and end_date and parsed_start > parsed_end:
+                return jsonify({
+                    "error": "start_date cannot be after end_date."
+                }), 400
+
             items = db.session.execute(
-                select(Expense)
-                .where(Expense.user_id == user.id)
-                .order_by(
+                query.order_by(
                     Expense.expense_date.desc(),
                     Expense.id.desc(),
                 )
             ).scalars().all()
 
-            return jsonify([expense_to_dict(item) for item in items]), 200
+            return jsonify([
+                expense_to_dict(item) for item in items
+            ]), 200
 
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
