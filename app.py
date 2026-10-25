@@ -5,6 +5,7 @@ import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
+from flask_migrate import Migrate
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -38,7 +39,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = MAX_RECEIPT_SIZE + (64 * 1024)
 
 db.init_app(app)
-
+migrate = Migrate(app, db)
 # Temporary identity for local development only.
 # Replace this with real authentication before production deployment.
 DEV_EMAIL = "local-dev@expensio.invalid"
