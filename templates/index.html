@@ -5,31 +5,403 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expensio | Expense Tracker</title>
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
+            margin: 0;
             font-family: Arial, sans-serif;
             background: #f4f6fb;
             color: #202b45;
+        }
+
+        header {
+            background: #3157c8;
+            color: white;
+            padding: 22px 7%;
+        }
+
+        header h1 {
             margin: 0;
-            padding: 60px 20px;
-            text-align: center;
+            font-size: 28px;
         }
+
+        header p {
+            margin-bottom: 0;
+            color: #e2e9ff;
+        }
+
         main {
-            max-width: 650px;
-            margin: auto;
-            padding: 40px 24px;
-            background: white;
-            border-radius: 16px;
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
         }
-        h1 { color: #3157c8; }
-        p { line-height: 1.7; }
+
+        .summary {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            margin-bottom: 24px;
+            box-shadow: 0 3px 12px #1725540d;
+        }
+
+        .summary p {
+            margin: 0 0 10px;
+            color: #64708a;
+        }
+
+        .summary h2 {
+            margin: 0;
+            font-size: 32px;
+            color: #3157c8;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 3px 12px #1725540d;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 7px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #d9dfeb;
+            border-radius: 8px;
+            font: inherit;
+            background: white;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 11px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .primary {
+            background: #3157c8;
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .primary:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .delete {
+            background: #fff0f0;
+            color: #b42318;
+            margin-top: 12px;
+        }
+
+        .expense {
+            border: 1px solid #e6eaf2;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 14px;
+        }
+
+        .expense-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .expense h3 {
+            margin: 0 0 8px;
+            overflow-wrap: anywhere;
+        }
+
+        .amount {
+            color: #3157c8;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .meta, .description {
+            color: #64708a;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        #message {
+            margin-top: 14px;
+            font-size: 14px;
+        }
+
+        .empty {
+            color: #64708a;
+            padding: 18px 0;
+        }
+
+        @media (max-width: 750px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
+
 <body>
+    <header>
+        <h1>Expensio</h1>
+        <p>Track your spending. Understand your money.</p>
+    </header>
+
     <main>
-        <h1>Welcome to Expensio</h1>
-        <p>Your expenses, budgets, and financial reports in one place.</p>
-        <p>We're building a simpler way to track and understand spending.</p>
+        <section class="summary">
+            <p>Total recorded expenses</p>
+            <h2 id="total">₹0.00</h2>
+        </section>
+
+        <div class="layout">
+            <section class="panel">
+                <h2>Add an expense</h2>
+
+                <form id="expense-form">
+                    <label for="title">Expense name</label>
+                    <input id="title" name="title" maxlength="120"
+                           placeholder="e.g. Lunch" required>
+
+                    <label for="amount">Amount (₹)</label>
+                    <input id="amount" name="amount" type="number"
+                           min="0.01" step="0.01" placeholder="150.00"
+                           required>
+
+                    <label for="category">Category</label>
+                    <select id="category" name="category" required>
+                        <option value="">Choose a category</option>
+                        <option>Food</option>
+                        <option>Transport</option>
+                        <option>Education</option>
+                        <option>Shopping</option>
+                        <option>Bills</option>
+                        <option>Entertainment</option>
+                        <option>Healthcare</option>
+                        <option>Other</option>
+                    </select>
+
+                    <label for="expense_date">Date</label>
+                    <input id="expense_date" name="expense_date"
+                           type="date" required>
+
+                    <label for="description">Description (optional)</label>
+                    <textarea id="description" name="description"
+                              placeholder="Add a note..."></textarea>
+
+                    <button class="primary" id="submit-button" type="submit">
+                        Save expense
+                    </button>
+                </form>
+
+                <p id="message" role="status" aria-live="polite"></p>
+            </section>
+
+            <section class="panel">
+                <h2>Your expenses</h2>
+                <p class="meta">Your saved expenses appear here.</p>
+                <div id="expense-list" aria-live="polite">
+                    <p class="empty">Loading expenses...</p>
+                </div>
+            </section>
+        </div>
     </main>
+
+    <script>
+        const form = document.getElementById("expense-form");
+        const list = document.getElementById("expense-list");
+        const totalElement = document.getElementById("total");
+        const message = document.getElementById("message");
+        const submitButton = document.getElementById("submit-button");
+
+        const today = new Date();
+        const localToday = new Date(
+            today.getTime() - today.getTimezoneOffset() * 60000
+        ).toISOString().slice(0, 10);
+
+        document.getElementById("expense_date").value = localToday;
+
+        function showMessage(text, isError = false) {
+            message.textContent = text;
+            message.style.color = isError ? "#b42318" : "#18794e";
+        }
+
+        function formatMoney(amount) {
+            return Number(amount).toLocaleString("en-IN", {
+                style: "currency",
+                currency: "INR"
+            });
+        }
+
+        async function loadExpenses() {
+            list.replaceChildren();
+
+            try {
+                const response = await fetch("/api/expenses");
+
+                if (!response.ok) {
+                    throw new Error("Could not load expenses.");
+                }
+
+                const expenses = await response.json();
+                let total = 0;
+
+                if (expenses.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.className = "empty";
+                    empty.textContent = "No expenses yet. Add your first one!";
+                    list.appendChild(empty);
+                }
+
+                expenses.forEach(expense => {
+                    total += Number(expense.amount);
+
+                    const card = document.createElement("article");
+                    card.className = "expense";
+
+                    const top = document.createElement("div");
+                    top.className = "expense-top";
+
+                    const details = document.createElement("div");
+                    const title = document.createElement("h3");
+                    title.textContent = expense.title;
+
+                    const meta = document.createElement("p");
+                    meta.className = "meta";
+                    meta.textContent =
+                        `${expense.category} • ${expense.expense_date}`;
+
+                    details.append(title, meta);
+
+                    const amount = document.createElement("span");
+                    amount.className = "amount";
+                    amount.textContent = formatMoney(expense.amount);
+
+                    top.append(details, amount);
+                    card.appendChild(top);
+
+                    if (expense.description) {
+                        const description = document.createElement("p");
+                        description.className = "description";
+                        description.textContent = expense.description;
+                        card.appendChild(description);
+                    }
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.className = "delete";
+                    deleteButton.type = "button";
+                    deleteButton.textContent = "Delete";
+
+                    deleteButton.addEventListener("click", async () => {
+                        if (!confirm(`Delete "${expense.title}"?`)) return;
+
+                        deleteButton.disabled = true;
+
+                        try {
+                            const result = await fetch(
+                                `/api/expenses/${expense.id}`,
+                                { method: "DELETE" }
+                            );
+
+                            if (!result.ok) {
+                                throw new Error("Could not delete expense.");
+                            }
+
+                            showMessage("Expense deleted.");
+                            await loadExpenses();
+                        } catch (error) {
+                            showMessage(error.message, true);
+                            deleteButton.disabled = false;
+                        }
+                    });
+
+                    card.appendChild(deleteButton);
+                    list.appendChild(card);
+                });
+
+                totalElement.textContent = formatMoney(total);
+            } catch (error) {
+                list.replaceChildren();
+                const errorText = document.createElement("p");
+                errorText.className = "empty";
+                errorText.textContent =
+                    "Could not load expenses. Please refresh the page.";
+                list.appendChild(errorText);
+                showMessage(error.message, true);
+            }
+        }
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+            submitButton.disabled = true;
+            showMessage("");
+
+            const data = {
+                title: form.title.value.trim(),
+                amount: form.amount.value,
+                category: form.category.value,
+                expense_date: form.expense_date.value,
+                description: form.description.value.trim()
+            };
+
+            try {
+                const response = await fetch("/api/expenses", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || "Could not save expense.");
+                }
+
+                form.reset();
+                document.getElementById("expense_date").value = localToday;
+                showMessage("Expense saved successfully!");
+                await loadExpenses();
+            } catch (error) {
+                showMessage(error.message, true);
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        loadExpenses();
+    </script>
 </body>
 </html>
