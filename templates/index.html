@@ -4,170 +4,512 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expensio | Expense Tracker</title>
+    <meta name="theme-color" content="#faf8ff">
+    <title>Expensio | Your Personal Finance Space</title>
 
     <style>
         * {
             box-sizing: border-box;
         }
 
+        :root {
+            --bg: #faf8ff;
+            --surface: #ffffff;
+            --primary: #7657d8;
+            --primary-hover: #6242c5;
+            --primary-soft: #eee8ff;
+            --mint: #dff7ec;
+            --text: #28243a;
+            --muted: #79758b;
+            --border: #ebe7f3;
+            --danger: #d84d63;
+            --shadow: 0 8px 30px rgba(57, 42, 100, 0.06);
+        }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f6fb;
-            color: #202b45;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            background:
+                radial-gradient(ellipse at 8% 0%, #eee7ff 0, transparent 34%),
+                radial-gradient(ellipse at 100% 25%, #e1f8ef 0, transparent 30%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        button, input, select, textarea {
+            font: inherit;
         }
 
         header {
-            background: #3157c8;
-            color: white;
-            padding: 22px 7%;
+            padding: 22px max(6%, calc((100% - 1200px) / 2));
+            background: rgba(255, 255, 255, 0.88);
+            border-bottom: 1px solid var(--border);
         }
 
-        header h1 {
+        .brand-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
             margin: 0;
-            font-size: 28px;
+            color: var(--primary);
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -1.2px;
         }
 
-        header p {
-            margin-bottom: 0;
-            color: #e2e9ff;
+        .brand span {
+            color: #23a981;
+        }
+
+        .tagline {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .local-badge {
+            background: var(--mint);
+            color: #247759;
+            padding: 7px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         main {
-            max-width: 1100px;
-            margin: 30px auto;
-            padding: 0 20px;
+            max-width: 1200px;
+            margin: 36px auto;
+            padding: 0 24px 48px;
+        }
+
+        .welcome {
+            margin-bottom: 26px;
+        }
+
+        .eyebrow {
+            color: var(--primary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.8px;
+            font-weight: 800;
+        }
+
+        .welcome h2 {
+            font-size: clamp(27px, 4vw, 38px);
+            line-height: 1.2;
+            letter-spacing: -1.4px;
+            margin: 8px 0;
+        }
+
+        .welcome p {
+            color: var(--muted);
+            margin: 0;
+            max-width: 600px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 20px;
+            margin-bottom: 26px;
         }
 
         .summary {
-            background: white;
-            padding: 24px;
-            border-radius: 14px;
-            margin-bottom: 24px;
-            box-shadow: 0 3px 12px #1725540d;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(120deg, #ffffff, #f0eaff);
+            border: 1px solid #e7dfff;
+            padding: 27px;
+            border-radius: 22px;
+            box-shadow: var(--shadow);
         }
 
-        .summary p {
-            margin: 0 0 10px;
-            color: #64708a;
+        .summary::after {
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            right: -45px;
+            top: -60px;
+            border-radius: 50%;
+            background: rgba(166, 141, 255, 0.13);
+            pointer-events: none;
         }
 
-        .summary h2 {
+        .summary-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            margin: 0 0 8px;
+        }
+
+        .summary h3 {
             margin: 0;
-            font-size: 32px;
-            color: #3157c8;
+            color: var(--primary);
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 1.25;
+            letter-spacing: -1px;
+            overflow-wrap: anywhere;
+        }
+
+        .summary-note {
+            margin: 9px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .count-card {
+            background: linear-gradient(135deg, #ffffff, #e8faf2);
+            border: 1px solid #d7f0e4;
+        }
+
+        .count-card h3 {
+            color: #218666;
         }
 
         .layout {
             display: grid;
-            grid-template-columns: 1fr 1.4fr;
-            gap: 24px;
+            grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.4fr);
+            gap: 25px;
             align-items: start;
         }
 
-        .panel {
-            background: white;
-            border-radius: 14px;
-            padding: 24px;
-            box-shadow: 0 3px 12px #1725540d;
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
         }
 
-        h2 {
-            margin-top: 0;
+        .panel {
+            min-width: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 26px;
+            box-shadow: var(--shadow);
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .heading-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 13px;
+            background: var(--primary-soft);
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .heading-icon.mint {
+            background: var(--mint);
+        }
+
+        .panel h2 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .panel-subtitle {
+            margin: 3px 0 0;
+            color: var(--muted);
+            font-size: 13px;
         }
 
         label {
             display: block;
-            margin: 15px 0 7px;
-            font-weight: bold;
-            font-size: 14px;
+            margin: 16px 0 7px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #514b67;
         }
 
         input, select, textarea {
             width: 100%;
-            padding: 11px;
-            border: 1px solid #d9dfeb;
-            border-radius: 8px;
-            font: inherit;
-            background: white;
+            padding: 12px 13px;
+            border: 1px solid #e3dfed;
+            border-radius: 11px;
+            background: #fdfcff;
+            color: var(--text);
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #a48be9;
+            box-shadow: 0 0 0 4px rgba(118, 87, 216, 0.10);
         }
 
         textarea {
+            min-height: 82px;
             resize: vertical;
-            min-height: 80px;
-        }
-
-        button {
-            border: 0;
-            border-radius: 8px;
-            padding: 11px 16px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
         }
 
         .primary {
-            background: #3157c8;
-            color: white;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 21px;
+            border: 0;
+            border-radius: 11px;
+            padding: 13px 17px;
+            background: linear-gradient(135deg, #8667e5, #6e50ce);
+            color: white;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 5px 13px rgba(118, 87, 216, 0.20);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 7px 17px rgba(118, 87, 216, 0.25);
         }
 
         .primary:disabled {
-            opacity: 0.6;
+            opacity: 0.65;
             cursor: wait;
         }
 
-        .delete {
-            background: #fff0f0;
-            color: #b42318;
-            margin-top: 12px;
+        .expense {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 17px;
+            margin-top: 13px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .expense {
-            border: 1px solid #e6eaf2;
-            border-radius: 10px;
-            padding: 16px;
-            margin-top: 14px;
+        .expense:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(57, 42, 100, 0.07);
         }
 
         .expense-top {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             gap: 12px;
         }
 
         .expense h3 {
-            margin: 0 0 8px;
+            margin: 0 0 5px;
+            font-size: 15px;
             overflow-wrap: anywhere;
         }
 
         .amount {
-            color: #3157c8;
-            font-weight: bold;
+            color: #218666;
+            font-weight: 800;
             white-space: nowrap;
+            font-size: 15px;
         }
 
         .meta, .description {
-            color: #64708a;
-            font-size: 14px;
+            color: var(--muted);
+            font-size: 13px;
             overflow-wrap: anywhere;
         }
 
-        #message {
-            margin-top: 14px;
-            font-size: 14px;
+        .meta {
+            margin: 5px 0 0;
+        }
+
+        .description {
+            margin: 12px 0 0;
+        }
+
+        .delete {
+            background: #fff0f2;
+            color: var(--danger);
+            border: 0;
+            border-radius: 9px;
+            margin-top: 13px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .delete:hover {
+            background: #ffe1e7;
         }
 
         .empty {
-            color: #64708a;
-            padding: 18px 0;
+            padding: 25px 14px;
+            text-align: center;
+            color: var(--muted);
+            background: #faf9fd;
+            border: 1px dashed #e4dfef;
+            border-radius: 13px;
+            font-size: 14px;
         }
 
-        @media (max-width: 750px) {
+        #message {
+            margin: 13px 0 0;
+            font-size: 13px;
+        }
+
+        .category-row {
+            margin: 18px 0;
+        }
+
+        .category-info {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .category-info strong {
+            overflow-wrap: anywhere;
+        }
+
+        .category-info span {
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .progress-track {
+            height: 9px;
+            border-radius: 20px;
+            background: #f0edf7;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(90deg, #a48be9, #7657d8);
+        }
+
+        .chart {
+            height: 210px;
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+            padding-top: 12px;
+        }
+
+        .chart-column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .chart-value {
+            font-size: 10px;
+            color: var(--muted);
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .chart-bar-area {
+            height: 130px;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .chart-bar {
+            width: min(34px, 75%);
+            min-height: 3px;
+            background: linear-gradient(180deg, #b8a2fa, #7657d8);
+            border-radius: 8px 8px 3px 3px;
+            transition: height 0.3s ease;
+        }
+
+        .chart-label {
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #bba9fa;
+            outline-offset: 3px;
+        }
+
+        @media (max-width: 850px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            header {
+                padding: 20px;
+            }
+
+            main {
+                margin: 26px auto;
+                padding: 0 15px 35px;
+            }
+
+            .summary-grid,
             .layout {
                 grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .panel, .summary {
+                padding: 21px;
+                border-radius: 17px;
+            }
+
+            .local-badge {
+                font-size: 10px;
+                padding: 6px 9px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .brand {
+                font-size: 25px;
+            }
+
+            .tagline {
+                font-size: 12px;
+            }
+
+            .local-badge {
+                white-space: normal;
+                text-align: center;
+            }
+
+            .category-info {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -175,53 +517,142 @@
 
 <body>
     <header>
-        <h1>Expensio</h1>
-        <p>Track your spending. Understand your money.</p>
+        <div class="brand-row">
+            <div>
+                <h1 class="brand">Expen<span>sio.</span></h1>
+                <p class="tagline">A little more clarity with every expense.</p>
+            </div>
+            <span class="local-badge">✦ Your finance space</span>
+        </div>
     </header>
 
     <main>
-        <section class="summary">
-            <p>Total recorded expenses</p>
-            <h2 id="total">₹0.00</h2>
+        <section class="welcome">
+            <span class="eyebrow">Your personal dashboard</span>
+            <h2>Money, made a little simpler. ✨</h2>
+            <p>
+                Keep track of your spending, build better habits,
+                and feel more in control of your money.
+            </p>
+        </section>
+
+        <section class="summary-grid">
+            <div class="summary">
+                <p class="summary-label">Total recorded spending</p>
+                <h3 id="total">₹0.00</h3>
+                <p class="summary-note">
+                    Calculated from all your saved expenses.
+                </p>
+            </div>
+
+            <div class="summary count-card">
+                <p class="summary-label">Expenses recorded</p>
+                <h3 id="expense-count">0</h3>
+                <p class="summary-note">
+                    Every little detail counts.
+                </p>
+            </div>
+        </section>
+
+        <section class="analytics-grid">
+            <div class="panel">
+                <div class="panel-heading">
+                    <div class="heading-icon">◔</div>
+                    <div>
+                        <h2>Where your money goes</h2>
+                        <p class="panel-subtitle">Spending by category</p>
+                    </div>
+                </div>
+
+                <div id="category-breakdown">
+                    <p class="empty">Loading categories...</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-heading">
+                    <div class="heading-icon mint">▥</div>
+                    <div>
+                        <h2>Monthly spending</h2>
+                        <p class="panel-subtitle">
+                            Your spending over the last six months
+                        </p>
+                    </div>
+                </div>
+
+                <div id="monthly-chart">
+                    <p class="empty">Loading monthly spending...</p>
+                </div>
+            </div>
         </section>
 
         <div class="layout">
             <section class="panel">
-                <h2>Add an expense</h2>
+                <div class="panel-heading">
+                    <div class="heading-icon">✎</div>
+                    <div>
+                        <h2>Add an expense</h2>
+                        <p class="panel-subtitle">
+                            Record where your money goes.
+                        </p>
+                    </div>
+                </div>
 
                 <form id="expense-form">
                     <label for="title">Expense name</label>
-                    <input id="title" name="title" maxlength="120"
-                           placeholder="e.g. Lunch" required>
+                    <input
+                        id="title"
+                        name="title"
+                        maxlength="120"
+                        placeholder="e.g. Lunch with friends"
+                        required
+                    >
 
                     <label for="amount">Amount (₹)</label>
-                    <input id="amount" name="amount" type="number"
-                           min="0.01" step="0.01" placeholder="150.00"
-                           required>
+                    <input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="e.g. 250.00"
+                        required
+                    >
 
                     <label for="category">Category</label>
                     <select id="category" name="category" required>
                         <option value="">Choose a category</option>
-                        <option>Food</option>
-                        <option>Transport</option>
-                        <option>Education</option>
-                        <option>Shopping</option>
-                        <option>Bills</option>
-                        <option>Entertainment</option>
-                        <option>Healthcare</option>
-                        <option>Other</option>
+                        <option value="Food">🍜 Food</option>
+                        <option value="Transport">🚗 Transport</option>
+                        <option value="Education">📚 Education</option>
+                        <option value="Shopping">🛍️ Shopping</option>
+                        <option value="Bills">💡 Bills</option>
+                        <option value="Entertainment">🎬 Entertainment</option>
+                        <option value="Healthcare">💚 Healthcare</option>
+                        <option value="Other">✦ Other</option>
                     </select>
 
                     <label for="expense_date">Date</label>
-                    <input id="expense_date" name="expense_date"
-                           type="date" required>
+                    <input
+                        id="expense_date"
+                        name="expense_date"
+                        type="date"
+                        required
+                    >
 
                     <label for="description">Description (optional)</label>
-                    <textarea id="description" name="description"
-                              placeholder="Add a note..."></textarea>
+                    <textarea
+                        id="description"
+                        name="description"
+                        placeholder="Add a little note about this expense..."
+                    ></textarea>
 
-                    <button class="primary" id="submit-button" type="submit">
-                        Save expense
+                    <button
+                        class="primary"
+                        id="submit-button"
+                        type="submit"
+                    >
+                        + Save expense
                     </button>
                 </form>
 
@@ -229,19 +660,32 @@
             </section>
 
             <section class="panel">
-                <h2>Your expenses</h2>
-                <p class="meta">Your saved expenses appear here.</p>
+                <div class="panel-heading">
+                    <div class="heading-icon mint">↗</div>
+                    <div>
+                        <h2>Your expenses</h2>
+                        <p class="panel-subtitle">
+                            Your spending, all in one place.
+                        </p>
+                    </div>
+                </div>
+
                 <div id="expense-list" aria-live="polite">
-                    <p class="empty">Loading expenses...</p>
+                    <p class="empty">Loading your expenses...</p>
                 </div>
             </section>
         </div>
     </main>
 
+    <footer>
+        Made for a clearer view of your money · Expensio
+    </footer>
+
     <script>
         const form = document.getElementById("expense-form");
         const list = document.getElementById("expense-list");
         const totalElement = document.getElementById("total");
+        const countElement = document.getElementById("expense-count");
         const message = document.getElementById("message");
         const submitButton = document.getElementById("submit-button");
 
@@ -254,14 +698,164 @@
 
         function showMessage(text, isError = false) {
             message.textContent = text;
-            message.style.color = isError ? "#b42318" : "#18794e";
+            message.style.color = isError ? "#d84d63" : "#218666";
         }
 
         function formatMoney(amount) {
             return Number(amount).toLocaleString("en-IN", {
                 style: "currency",
-                currency: "INR"
+                currency: "INR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
             });
+        }
+
+        function renderCategoryBreakdown(expenses) {
+            const container = document.getElementById("category-breakdown");
+            container.replaceChildren();
+
+            if (expenses.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "empty";
+                empty.textContent =
+                    "Add expenses to see your category breakdown.";
+                container.appendChild(empty);
+                return;
+            }
+
+            const totals = {};
+
+            expenses.forEach(expense => {
+                const category = expense.category;
+                totals[category] =
+                    (totals[category] || 0) + Number(expense.amount);
+            });
+
+            const categories = Object.entries(totals)
+                .sort((a, b) => b[1] - a[1]);
+
+            const grandTotal = categories.reduce(
+                (sum, item) => sum + item[1],
+                0
+            );
+
+            categories.forEach(([category, amount]) => {
+                const row = document.createElement("div");
+                row.className = "category-row";
+
+                const info = document.createElement("div");
+                info.className = "category-info";
+
+                const name = document.createElement("strong");
+                name.textContent = category;
+
+                const percentage = grandTotal > 0
+                    ? amount / grandTotal * 100
+                    : 0;
+
+                const value = document.createElement("span");
+                value.textContent =
+                    `${formatMoney(amount)} · ${percentage.toFixed(1)}%`;
+
+                info.append(name, value);
+
+                const track = document.createElement("div");
+                track.className = "progress-track";
+
+                const fill = document.createElement("div");
+                fill.className = "progress-fill";
+                fill.style.width = `${percentage}%`;
+
+                track.appendChild(fill);
+                row.append(info, track);
+                container.appendChild(row);
+            });
+        }
+
+        function renderMonthlyChart(expenses) {
+            const container = document.getElementById("monthly-chart");
+            container.replaceChildren();
+
+            const months = [];
+            const now = new Date();
+
+            for (let offset = 5; offset >= 0; offset--) {
+                const monthDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth() - offset,
+                    1
+                );
+
+                months.push({
+                    year: monthDate.getFullYear(),
+                    month: monthDate.getMonth(),
+                    label: monthDate.toLocaleDateString("en-IN", {
+                        month: "short"
+                    }),
+                    total: 0
+                });
+            }
+
+            expenses.forEach(expense => {
+                const parts = expense.expense_date.split("-").map(Number);
+                const year = parts[0];
+                const month = parts[1] - 1;
+
+                const matchingMonth = months.find(item =>
+                    item.year === year && item.month === month
+                );
+
+                if (matchingMonth) {
+                    matchingMonth.total += Number(expense.amount);
+                }
+            });
+
+            const maxTotal = Math.max(
+                ...months.map(item => item.total),
+                1
+            );
+
+            const chart = document.createElement("div");
+            chart.className = "chart";
+            chart.setAttribute("role", "img");
+            chart.setAttribute(
+                "aria-label",
+                "Monthly expense totals for the last six months"
+            );
+
+            months.forEach(item => {
+                const column = document.createElement("div");
+                column.className = "chart-column";
+
+                const value = document.createElement("span");
+                value.className = "chart-value";
+                value.textContent = item.total
+                    ? formatMoney(item.total)
+                    : "₹0";
+
+                const barArea = document.createElement("div");
+                barArea.className = "chart-bar-area";
+
+                const bar = document.createElement("div");
+                bar.className = "chart-bar";
+                bar.style.height = item.total
+                    ? `${Math.max(item.total / maxTotal * 100, 4)}%`
+                    : "3px";
+
+                bar.title =
+                    `${item.label} ${item.year}: ${formatMoney(item.total)}`;
+
+                barArea.appendChild(bar);
+
+                const label = document.createElement("span");
+                label.className = "chart-label";
+                label.textContent = item.label;
+
+                column.append(value, barArea, label);
+                chart.appendChild(column);
+            });
+
+            container.appendChild(chart);
         }
 
         async function loadExpenses() {
@@ -277,16 +871,26 @@
                 const expenses = await response.json();
                 let total = 0;
 
+                expenses.forEach(expense => {
+                    total += Number(expense.amount);
+                });
+
+                totalElement.textContent = formatMoney(total);
+                countElement.textContent = expenses.length;
+
+                renderCategoryBreakdown(expenses);
+                renderMonthlyChart(expenses);
+
                 if (expenses.length === 0) {
                     const empty = document.createElement("p");
                     empty.className = "empty";
-                    empty.textContent = "No expenses yet. Add your first one!";
+                    empty.textContent =
+                        "No expenses yet. Add your first one to get started! ✨";
                     list.appendChild(empty);
+                    return;
                 }
 
                 expenses.forEach(expense => {
-                    total += Number(expense.amount);
-
                     const card = document.createElement("article");
                     card.className = "expense";
 
@@ -294,13 +898,14 @@
                     top.className = "expense-top";
 
                     const details = document.createElement("div");
+
                     const title = document.createElement("h3");
                     title.textContent = expense.title;
 
                     const meta = document.createElement("p");
                     meta.className = "meta";
                     meta.textContent =
-                        `${expense.category} • ${expense.expense_date}`;
+                        `${expense.category} · ${expense.expense_date}`;
 
                     details.append(title, meta);
 
@@ -321,10 +926,12 @@
                     const deleteButton = document.createElement("button");
                     deleteButton.className = "delete";
                     deleteButton.type = "button";
-                    deleteButton.textContent = "Delete";
+                    deleteButton.textContent = "Delete expense";
 
                     deleteButton.addEventListener("click", async () => {
-                        if (!confirm(`Delete "${expense.title}"?`)) return;
+                        if (!confirm(`Delete "${expense.title}"?`)) {
+                            return;
+                        }
 
                         deleteButton.disabled = true;
 
@@ -335,10 +942,12 @@
                             );
 
                             if (!result.ok) {
-                                throw new Error("Could not delete expense.");
+                                throw new Error(
+                                    "Could not delete this expense."
+                                );
                             }
 
-                            showMessage("Expense deleted.");
+                            showMessage("Expense deleted successfully.");
                             await loadExpenses();
                         } catch (error) {
                             showMessage(error.message, true);
@@ -349,14 +958,14 @@
                     card.appendChild(deleteButton);
                     list.appendChild(card);
                 });
-
-                totalElement.textContent = formatMoney(total);
             } catch (error) {
                 list.replaceChildren();
+
                 const errorText = document.createElement("p");
                 errorText.className = "empty";
                 errorText.textContent =
-                    "Could not load expenses. Please refresh the page.";
+                    "We couldn't load your expenses. Please refresh the page.";
+
                 list.appendChild(errorText);
                 showMessage(error.message, true);
             }
@@ -368,11 +977,11 @@
             showMessage("");
 
             const data = {
-                title: form.title.value.trim(),
-                amount: form.amount.value,
-                category: form.category.value,
-                expense_date: form.expense_date.value,
-                description: form.description.value.trim()
+                title: form.elements["title"].value.trim(),
+                amount: form.elements["amount"].value,
+                category: form.elements["category"].value,
+                expense_date: form.elements["expense_date"].value,
+                description: form.elements["description"].value.trim()
             };
 
             try {
@@ -387,12 +996,15 @@
                 const result = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(result.error || "Could not save expense.");
+                    throw new Error(
+                        result.error || "Could not save this expense."
+                    );
                 }
 
                 form.reset();
                 document.getElementById("expense_date").value = localToday;
-                showMessage("Expense saved successfully!");
+
+                showMessage("Your expense has been saved successfully! ✨");
                 await loadExpenses();
             } catch (error) {
                 showMessage(error.message, true);
