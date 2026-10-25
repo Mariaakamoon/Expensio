@@ -1,6 +1,7 @@
 
 Flask
 Flask-SQLAlchemy
+Flask-Migrate
 psycopg[binary]
 boto3
 python-dotenv
