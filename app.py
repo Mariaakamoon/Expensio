@@ -4,6 +4,7 @@ import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
+from csv_import import validate_csv
 
 import boto3
 from botocore.config import Config
@@ -207,6 +208,62 @@ def health():
             "status": "error",
             "database": "unavailable",
         }), 503
+
+@app.route("/api/imports/csv/preview", methods=["POST"])
+def preview_csv_import():
+    uploaded_file = request.files.get("file")
+
+    if uploaded_file is None or not uploaded_file.filename:
+        return jsonify({"error": "Upload a CSV file using the 'file' field."}), 400
+
+    if not uploaded_file.filename.lower().endswith(".csv"):
+        return jsonify({"error": "Only .csv files are accepted."}), 400
+
+    try:
+        raw_content = uploaded_file.stream.read(5 * 1024 * 1024 + 1)
+
+        if len(raw_content) > 5 * 1024 * 1024:
+            return jsonify({"error": "CSV file must be 5 MiB or smaller."}), 413
+
+        try:
+            csv_content = raw_content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return jsonify({"error": "CSV must use UTF-8 encoding."}), 400
+
+        result = validate_csv(csv_content)
+
+        return jsonify({
+            "expense_count": len(result["valid_transactions"]),
+            "credit_count": len(result["credits"]),
+            "error_count": len(result["errors"]),
+            "expenses": [
+                {
+                    "transaction_date": item["transaction_date"].isoformat(),
+                    "amount": str(item["amount"]),
+                    "expense_amount": str(item["expense_amount"]),
+                    "description": item["description"],
+                    "payment_method": item["payment_method"],
+                    "category": item["category"],
+                    "deduplication_key": item["deduplication_key"],
+                }
+                for item in result["valid_transactions"]
+            ],
+            "credits": [
+                {
+                    "transaction_date": item["transaction_date"].isoformat(),
+                    "amount": str(item["amount"]),
+                    "description": item["description"],
+                    "payment_method": item["payment_method"],
+                    "category": item["category"],
+                }
+                for item in result["credits"]
+            ],
+            "errors": result["errors"],
+        }), 200
+
+    except OSError:
+        app.logger.exception("Failed to read uploaded CSV")
+        return jsonify({"error": "Could not read the uploaded CSV file."}), 400
 
 
 @app.route("/api/expenses", methods=["GET", "POST"])
