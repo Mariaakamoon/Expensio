@@ -132,7 +132,6 @@ def expense_to_dict(expense):
 
     return {
         "id": expense.id,
-        "title": expense.title,
         "amount": str(expense.amount),
         "category": expense.category.name,
         "expense_date": expense.expense_date.isoformat(),
@@ -291,35 +290,36 @@ def expenses():
                 "error": "Send a valid JSON object."
             }), 400
 
-        title = data.get("title")
+        description = data.get("description")
         category_name = data.get("category")
         raw_amount = data.get("amount")
         raw_date = data.get("expense_date")
-        description = data.get("description")
 
         if not all(
             isinstance(value, str) and value.strip()
-            for value in (title, category_name, raw_date)
+            for value in (category_name, raw_date)
         ):
             return jsonify({
-                "error": "Title, category and expense_date are required."
+                "error": "Category and expense_date are required."
             }), 400
 
-        title = title.strip()
         category_name = category_name.strip()
 
-        if len(title) > 120 or len(category_name) > 80:
+        if len(category_name) > 80:
             return jsonify({
-                "error": "Title or category is too long."
+                "error": "Category must be at most 80 characters."
             }), 400
 
-        if (
-            description is not None
-            and not isinstance(description, str)
-        ):
+        if description is not None and not isinstance(description, str):
             return jsonify({
                 "error": "Description must be text."
             }), 400
+
+        description = (
+            description.strip()
+            if description and description.strip()
+            else None
+        )
 
         try:
             amount = Decimal(str(raw_amount))
@@ -363,14 +363,9 @@ def expenses():
         expense = Expense(
             user_id=user.id,
             category_id=category.id,
-            title=title,
             amount=amount,
             expense_date=parsed_date,
-            description=(
-                description.strip()
-                if description and description.strip()
-                else None
-            ),
+            description=description,
             source="manual",
         )
 
@@ -433,7 +428,6 @@ def expense_detail(expense_id):
 
         data = request.get_json(silent=True)
         allowed_fields = {
-            "title",
             "amount",
             "category",
             "expense_date",
@@ -449,17 +443,7 @@ def expense_detail(expense_id):
                 "error": "Provide valid expense fields."
             }), 400
 
-        if "title" in data:
-            title = data["title"]
-            if (
-                not isinstance(title, str)
-                or not title.strip()
-                or len(title.strip()) > 120
-            ):
-                return jsonify({
-                    "error": "Title must be 1-120 characters."
-                }), 400
-            expense.title = title.strip()
+
 
         if "category" in data:
             category_name = data["category"]

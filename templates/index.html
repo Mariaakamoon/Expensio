@@ -623,10 +623,13 @@
                 </div>
 
                 <form id="expense-form">
-                    <label for="title">Expense name</label>
-                    <input id="title" name="title" maxlength="120"
-                           placeholder="e.g. Lunch with friends" required>
-
+                    <label for="description">Description (optional)</label>
+                    <input
+                        id="description"
+                        name="description"
+                        maxlength="500"
+                        placeholder="e.g. Lunch with friends"
+                    >
                     <label for="amount">Amount (₹)</label>
                     <input id="amount" name="amount" type="number" min="0.01"
                            step="0.01" placeholder="e.g. 250.00" required>
@@ -1105,7 +1108,7 @@
                 const details = document.createElement("div");
 
                 const title = document.createElement("h3");
-                title.textContent = expense.title;
+                title.textContent = expense.description || "Expense";
 
                 const meta = document.createElement("p");
                 meta.className = "meta";
@@ -1135,7 +1138,7 @@
                 deleteButton.textContent = "Delete expense";
 
                 deleteButton.addEventListener("click", async () => {
-                    if (!confirm(`Delete "${expense.title}"?`)) {
+                    if (!confirm(`Delete "${expense.description || "Expense"}"?`)) {
                         return;
                     }
 
@@ -1251,7 +1254,7 @@
             showMessage("");
 
             const data = {
-                title: form.elements["title"].value.trim(),
+                description: form.elements["description"].value.trim(),
                 amount: form.elements["amount"].value,
                 category: form.elements["category"].value,
                 expense_date: form.elements["expense_date"].value,

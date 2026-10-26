@@ -96,10 +96,6 @@ class Expense(db.Model):
         nullable=False,
     )
     category_id = db.Column(db.BigInteger, nullable=False)
-
-    # Kept for the existing dashboard's expense form.
-    title = db.Column(db.String(120), nullable=False)
-
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     expense_date = db.Column(db.Date, nullable=False)
     description = db.Column(db.Text, nullable=True)
