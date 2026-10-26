@@ -270,7 +270,6 @@
 
         .primary:disabled { opacity: 0.65; cursor: wait; }
 
-        /* Expense filter controls */
         .expense-filters {
             padding: 16px;
             margin-bottom: 18px;
@@ -448,6 +447,74 @@
 
         .chart-label { color: var(--muted); font-size: 11px; text-align: center; }
 
+        /* Receipt controls */
+        .receipt-box {
+            margin-top: 15px;
+            padding: 13px;
+            background: #faf9ff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .receipt-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .receipt-status {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .receipt-status.attached { color: #218666; }
+
+        .receipt-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .receipt-button {
+            padding: 8px 11px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: white;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 750;
+            cursor: pointer;
+        }
+
+        .receipt-button:hover { background: var(--primary-soft); }
+
+        .receipt-button.upload {
+            background: var(--primary-soft);
+            color: var(--primary);
+            border-color: #ded3ff;
+        }
+
+        .receipt-button.remove {
+            color: var(--danger);
+            background: #fff0f2;
+        }
+
+        .receipt-button:disabled { opacity: .6; cursor: wait; }
+
+        .receipt-help {
+            color: var(--muted);
+            font-size: 11px;
+            margin: 9px 0 0;
+        }
+
+        .receipt-file-input { display: none; }
+
         footer {
             text-align: center;
             padding: 22px;
@@ -600,7 +667,6 @@
                     </div>
                 </div>
 
-                <!-- Category and date filters -->
                 <div class="expense-filters">
                     <label for="filter-category">Filter by category</label>
                     <select id="filter-category">
@@ -659,6 +725,14 @@
         const applyFiltersButton = document.getElementById("apply-filters");
         const clearFiltersButton = document.getElementById("clear-filters");
 
+        const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;
+        const ALLOWED_RECEIPT_EXTENSIONS = ["jpg", "jpeg", "png", "pdf"];
+        const ALLOWED_RECEIPT_TYPES = [
+            "image/jpeg",
+            "image/png",
+            "application/pdf"
+        ];
+
         const today = new Date();
         const localToday = new Date(
             today.getTime() - today.getTimezoneOffset() * 60000
@@ -678,6 +752,27 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
+        }
+
+        async function readResponse(response) {
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error || result.message ||
+                    `Request failed (${response.status}).`
+                );
+            }
+
+            return result;
+        }
+        function hasReceipt(expense) {
+        return Boolean(
+            expense.receipt_object_key ||
+            expense.has_receipt ||
+            expense.receipt_attached ||
+            (Array.isArray(expense.receipts) && expense.receipts.length > 0)
+        );
         }
 
         function renderCategoryBreakdown(expenses) {
@@ -805,6 +900,187 @@
             container.appendChild(chart);
         }
 
+        function renderReceiptControls(expense, card) {
+            const receiptBox = document.createElement("div");
+            receiptBox.className = "receipt-box";
+
+            const heading = document.createElement("div");
+            heading.className = "receipt-heading";
+
+            const title = document.createElement("span");
+            title.textContent = "🧾 Receipt";
+
+            const status = document.createElement("span");
+            status.className = "receipt-status";
+            status.textContent = hasReceipt(expense)
+                ? "Receipt attached"
+                : "No receipt attached";
+
+            if (hasReceipt(expense)) {
+                status.classList.add("attached");
+            }
+
+            heading.append(title, status);
+            receiptBox.appendChild(heading);
+
+            const actions = document.createElement("div");
+            actions.className = "receipt-actions";
+
+            const fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.className = "receipt-file-input";
+            fileInput.accept = ".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf";
+            fileInput.setAttribute("aria-label", "Choose a receipt file");
+
+            const uploadButton = document.createElement("button");
+            uploadButton.type = "button";
+            uploadButton.className = "receipt-button upload";
+            uploadButton.textContent = hasReceipt(expense)
+                ? "Replace receipt"
+                : "Upload receipt";
+
+            uploadButton.addEventListener("click", () => fileInput.click());
+
+            fileInput.addEventListener("change", async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                const extension = file.name.includes(".")
+                    ? file.name.split(".").pop().toLowerCase()
+                    : "";
+
+                if (!ALLOWED_RECEIPT_EXTENSIONS.includes(extension)) {
+                    showMessage("Please select a JPG, PNG, or PDF file.", true);
+                    fileInput.value = "";
+                    return;
+                }
+
+                if (file.size > MAX_RECEIPT_SIZE) {
+                    showMessage("Receipt files must be 5 MB or smaller.", true);
+                    fileInput.value = "";
+                    return;
+                }
+
+                if (file.type && !ALLOWED_RECEIPT_TYPES.includes(file.type)) {
+                    showMessage("This file type is not supported.", true);
+                    fileInput.value = "";
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("receipt", file);
+
+                uploadButton.disabled = true;
+                uploadButton.textContent = "Uploading...";
+
+                try {
+                    const response = await fetch(
+                        `/api/expenses/${expense.id}/receipt`,
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                    await readResponse(response);
+                    showMessage("Receipt uploaded successfully.");
+                    await loadExpenses();
+                } catch (error) {
+                    showMessage(`Receipt upload failed: ${error.message}`, true);
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = hasReceipt(expense)
+                        ? "Replace receipt"
+                        : "Upload receipt";
+                } finally {
+                    fileInput.value = "";
+                }
+            });
+
+            actions.appendChild(uploadButton);
+            actions.appendChild(fileInput);
+
+            if (hasReceipt(expense)) {
+                const viewButton = document.createElement("button");
+                viewButton.type = "button";
+                viewButton.className = "receipt-button";
+                viewButton.textContent = "View / Download";
+
+                viewButton.addEventListener("click", async () => {
+                    viewButton.disabled = true;
+                    viewButton.textContent = "Opening...";
+
+                    try {
+                        const response = await fetch(
+                            `/api/expenses/${expense.id}/receipt`
+                        );
+                        const result = await readResponse(response);
+
+                        const receiptUrl =
+                            result.url ||
+                            result.download_url ||
+                            result.presigned_url;
+
+                        if (!receiptUrl) {
+                            throw new Error(
+                                "The server did not return a receipt URL."
+                            );
+                        }
+
+                        window.open(
+                            receiptUrl,
+                            "_blank",
+                            "noopener,noreferrer"
+                        );
+                    } catch (error) {
+                        showMessage(`Could not open receipt: ${error.message}`, true);
+                    } finally {
+                        viewButton.disabled = false;
+                        viewButton.textContent = "View / Download";
+                    }
+                });
+
+                const removeButton = document.createElement("button");
+                removeButton.type = "button";
+                removeButton.className = "receipt-button remove";
+                removeButton.textContent = "Remove receipt";
+
+                removeButton.addEventListener("click", async () => {
+                    if (!confirm("Remove the receipt attached to this expense?")) {
+                        return;
+                    }
+
+                    removeButton.disabled = true;
+                    removeButton.textContent = "Removing...";
+
+                    try {
+                        const response = await fetch(
+                            `/api/expenses/${expense.id}/receipt`,
+                            { method: "DELETE" }
+                        );
+
+                        await readResponse(response);
+                        showMessage("Receipt removed successfully.");
+                        await loadExpenses();
+                    } catch (error) {
+                        showMessage(`Could not remove receipt: ${error.message}`, true);
+                        removeButton.disabled = false;
+                        removeButton.textContent = "Remove receipt";
+                    }
+                });
+
+                actions.append(viewButton, removeButton);
+            }
+
+            receiptBox.appendChild(actions);
+
+            const help = document.createElement("p");
+            help.className = "receipt-help";
+            help.textContent = "JPG, PNG or PDF · Maximum file size: 5 MB";
+            receiptBox.appendChild(help);
+
+            card.appendChild(receiptBox);
+        }
+
         function renderExpenseList(expenses, filtersActive) {
             list.replaceChildren();
 
@@ -851,6 +1127,8 @@
                     card.appendChild(description);
                 }
 
+                renderReceiptControls(expense, card);
+
                 const deleteButton = document.createElement("button");
                 deleteButton.className = "delete";
                 deleteButton.type = "button";
@@ -869,12 +1147,7 @@
                             { method: "DELETE" }
                         );
 
-                        if (!response.ok) {
-                            const result = await response.json().catch(() => ({}));
-                            throw new Error(
-                                result.error || "Could not delete this expense."
-                            );
-                        }
+                        await readResponse(response);
 
                         showMessage("Expense deleted successfully.");
                         await loadExpenses();
@@ -898,34 +1171,30 @@
                 filterEndDate.value
             );
 
+            if (
+                filterStartDate.value &&
+                filterEndDate.value &&
+                filterStartDate.value > filterEndDate.value
+            ) {
+                showMessage("The From date cannot be after the To date.", true);
+                return;
+            }
+
             try {
-                /*
-                 * Fetch every expense first so dashboard totals and charts
-                 * continue to represent all saved expenses.
-                 */
                 const allResponse = await fetch("/api/expenses");
+                const allExpenses = await readResponse(allResponse);
 
-                if (!allResponse.ok) {
-                    throw new Error("Could not load your expenses.");
-                }
-
-                const allExpenses = await allResponse.json();
-
-                const total = allExpenses.reduce(
-                    (sum, expense) => sum + Number(expense.amount),
-                    0
+                totalElement.textContent = formatMoney(
+                    allExpenses.reduce(
+                        (sum, expense) => sum + Number(expense.amount),
+                        0
+                    )
                 );
 
-                totalElement.textContent = formatMoney(total);
                 countElement.textContent = allExpenses.length;
-
                 renderCategoryBreakdown(allExpenses);
                 renderMonthlyChart(allExpenses);
 
-                /*
-                 * Fetch the expense list with the selected filters.
-                 * The backend accepts category, start_date and end_date.
-                 */
                 const params = new URLSearchParams();
 
                 if (filterCategory.value) {
@@ -946,13 +1215,7 @@
                     : "/api/expenses";
 
                 const filteredResponse = await fetch(filteredUrl);
-                const filteredExpenses = await filteredResponse.json();
-
-                if (!filteredResponse.ok) {
-                    throw new Error(
-                        filteredExpenses.error || "Could not filter expenses."
-                    );
-                }
+                const filteredExpenses = await readResponse(filteredResponse);
 
                 renderExpenseList(filteredExpenses, filtersActive);
             } catch (error) {
@@ -969,18 +1232,6 @@
         }
 
         applyFiltersButton.addEventListener("click", async () => {
-            if (
-                filterStartDate.value &&
-                filterEndDate.value &&
-                filterStartDate.value > filterEndDate.value
-            ) {
-                showMessage(
-                    "The From date cannot be after the To date.",
-                    true
-                );
-                return;
-            }
-
             showMessage("");
             await loadExpenses();
         });
@@ -1014,13 +1265,7 @@
                     body: JSON.stringify(data)
                 });
 
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(
-                        result.error || "Could not save this expense."
-                    );
-                }
+                await readResponse(response);
 
                 form.reset();
                 document.getElementById("expense_date").value = localToday;

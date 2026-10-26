@@ -1,19 +1,19 @@
-
 import os
 import logging
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
-from flask_migrate import Migrate
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from werkzeug.utils import secure_filename
+from flask_migrate import Migrate
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.utils import secure_filename
 
 from models import db, User, Category, Expense
 
@@ -27,8 +27,14 @@ if not database_url:
         "DATABASE_URL is missing. Create a local .env file."
     )
 
-AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
-S3_RECEIPTS_BUCKET = os.getenv("S3_RECEIPTS_BUCKET")
+AWS_REGION = (
+    os.getenv("AWS_REGION", "ap-south-1").strip()
+    or "ap-south-1"
+)
+
+S3_RECEIPTS_BUCKET = (
+    os.getenv("S3_RECEIPTS_BUCKET", "").strip()
+)
 
 # Receipt upload limits and permitted file extensions.
 MAX_RECEIPT_SIZE = 5 * 1024 * 1024  # 5 MiB
@@ -40,6 +46,7 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_RECEIPT_SIZE + (64 * 1024)
 
 db.init_app(app)
 migrate = Migrate(app, db)
+
 # Temporary identity for local development only.
 # Replace this with real authentication before production deployment.
 DEV_EMAIL = "local-dev@expensio.invalid"
@@ -62,8 +69,15 @@ ALLOWED_RECEIPT_MIME_TYPES = {
 
 
 def get_s3_client():
-    """Use the standard AWS credential chain, not hard-coded keys."""
-    return boto3.client("s3", region_name=AWS_REGION)
+    """Create an S3 client with explicit Signature Version 4 signing."""
+    return boto3.client(
+        "s3",
+        region_name=AWS_REGION,
+        config=Config(
+            signature_version="s3v4",
+            s3={"addressing_style": "virtual"},
+        ),
+    )
 
 
 def receipt_storage_configured():
@@ -71,6 +85,7 @@ def receipt_storage_configured():
 
 
 def get_dev_user():
+    """Get or create the temporary local-development user."""
     user = db.session.execute(
         select(User).where(User.email == DEV_EMAIL)
     ).scalar_one_or_none()
@@ -86,14 +101,20 @@ def get_dev_user():
 
     existing_categories = set(
         db.session.execute(
-            select(Category.name).where(Category.user_id == user.id)
+            select(Category.name).where(
+                Category.user_id == user.id
+            )
         ).scalars().all()
     )
-    existing_lower = {name.lower() for name in existing_categories}
+    existing_lower = {
+        name.lower() for name in existing_categories
+    }
 
     for name in DEFAULT_CATEGORIES:
         if name.lower() not in existing_lower:
-            db.session.add(Category(user_id=user.id, name=name))
+            db.session.add(
+                Category(user_id=user.id, name=name)
+            )
 
     db.session.commit()
     return user
@@ -199,15 +220,26 @@ def expenses():
                 Expense.user_id == user.id
             )
 
-            category_name = request.args.get("category", "").strip()
-            start_date = request.args.get("start_date", "").strip()
-            end_date = request.args.get("end_date", "").strip()
+            category_name = request.args.get(
+                "category", ""
+            ).strip()
+            start_date = request.args.get(
+                "start_date", ""
+            ).strip()
+            end_date = request.args.get(
+                "end_date", ""
+            ).strip()
 
             if category_name:
-                query = query.join(Expense.category).where(
+                query = query.join(
+                    Expense.category
+                ).where(
                     db.func.lower(Category.name)
                     == category_name.lower()
                 )
+
+            parsed_start = None
+            parsed_end = None
 
             if start_date:
                 try:
@@ -233,7 +265,11 @@ def expenses():
                     Expense.expense_date <= parsed_end
                 )
 
-            if start_date and end_date and parsed_start > parsed_end:
+            if (
+                parsed_start
+                and parsed_end
+                and parsed_start > parsed_end
+            ):
                 return jsonify({
                     "error": "start_date cannot be after end_date."
                 }), 400
@@ -251,7 +287,9 @@ def expenses():
 
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
-            return jsonify({"error": "Send a valid JSON object."}), 400
+            return jsonify({
+                "error": "Send a valid JSON object."
+            }), 400
 
         title = data.get("title")
         category_name = data.get("category")
@@ -271,10 +309,17 @@ def expenses():
         category_name = category_name.strip()
 
         if len(title) > 120 or len(category_name) > 80:
-            return jsonify({"error": "Title or category is too long."}), 400
+            return jsonify({
+                "error": "Title or category is too long."
+            }), 400
 
-        if description is not None and not isinstance(description, str):
-            return jsonify({"error": "Description must be text."}), 400
+        if (
+            description is not None
+            and not isinstance(description, str)
+        ):
+            return jsonify({
+                "error": "Description must be text."
+            }), 400
 
         try:
             amount = Decimal(str(raw_amount))
@@ -302,12 +347,16 @@ def expenses():
         category = db.session.execute(
             select(Category).where(
                 Category.user_id == user.id,
-                db.func.lower(Category.name) == category_name.lower(),
+                db.func.lower(Category.name)
+                == category_name.lower(),
             )
         ).scalar_one_or_none()
 
         if category is None:
-            category = Category(user_id=user.id, name=category_name)
+            category = Category(
+                user_id=user.id,
+                name=category_name,
+            )
             db.session.add(category)
             db.session.flush()
 
@@ -361,6 +410,7 @@ def expense_detail(expense_id):
                     return jsonify({
                         "error": "Receipt storage is not configured."
                     }), 503
+
                 try:
                     get_s3_client().delete_object(
                         Bucket=S3_RECEIPTS_BUCKET,
@@ -371,7 +421,10 @@ def expense_detail(expense_id):
                         "Could not delete receipt before expense deletion"
                     )
                     return jsonify({
-                        "error": "Could not delete the receipt. Expense was not deleted."
+                        "error": (
+                            "Could not delete the receipt. "
+                            "Expense was not deleted."
+                        )
                     }), 502
 
             db.session.delete(expense)
@@ -392,7 +445,9 @@ def expense_detail(expense_id):
             or not data
             or not set(data).issubset(allowed_fields)
         ):
-            return jsonify({"error": "Provide valid expense fields."}), 400
+            return jsonify({
+                "error": "Provide valid expense fields."
+            }), 400
 
         if "title" in data:
             title = data["title"]
@@ -467,10 +522,14 @@ def expense_detail(expense_id):
 
         if "description" in data:
             description = data["description"]
-            if description is not None and not isinstance(description, str):
+            if (
+                description is not None
+                and not isinstance(description, str)
+            ):
                 return jsonify({
                     "error": "Description must be text."
                 }), 400
+
             expense.description = (
                 description.strip() if description else None
             )
@@ -528,7 +587,10 @@ def upload_receipt(expense_id):
         # Read at most one byte beyond the limit to enforce the size cap.
         file_data = uploaded_file.stream.read(MAX_RECEIPT_SIZE + 1)
         if not file_data:
-            return jsonify({"error": "The receipt file is empty."}), 400
+            return jsonify({
+                "error": "The receipt file is empty."
+            }), 400
+
         if len(file_data) > MAX_RECEIPT_SIZE:
             return jsonify({
                 "error": "Receipt file exceeds the 5 MB limit."
@@ -552,12 +614,14 @@ def upload_receipt(expense_id):
             return s3_error_response(error, "upload")
 
         expense.receipt_object_key = object_key
+
         try:
             db.session.commit()
         except SQLAlchemyError:
             db.session.rollback()
             app.logger.exception(
-                "Database save failed after receipt upload; cleaning up S3 object"
+                "Database save failed after receipt upload; "
+                "cleaning up S3 object"
             )
             try:
                 get_s3_client().delete_object(
@@ -568,8 +632,12 @@ def upload_receipt(expense_id):
                 app.logger.exception(
                     "Could not clean up unreferenced uploaded receipt"
                 )
+
             return jsonify({
-                "error": "Could not save the receipt reference to the database."
+                "error": (
+                    "Could not save the receipt reference "
+                    "to the database."
+                )
             }), 500
 
         # If replacing an old receipt, remove it after the new reference is saved.
@@ -581,7 +649,8 @@ def upload_receipt(expense_id):
                 )
             except (BotoCoreError, ClientError):
                 app.logger.exception(
-                    "New receipt saved, but the previous S3 object could not be deleted"
+                    "New receipt saved, but the previous S3 object "
+                    "could not be deleted"
                 )
 
         return jsonify({
@@ -617,7 +686,9 @@ def download_receipt(expense_id):
             return jsonify({"error": "Expense not found."}), 404
 
         if not expense.receipt_object_key:
-            return jsonify({"error": "This expense has no receipt."}), 404
+            return jsonify({
+                "error": "This expense has no receipt."
+            }), 404
 
         try:
             # URL expires after five minutes. The bucket remains private.
@@ -630,7 +701,10 @@ def download_receipt(expense_id):
                 ExpiresIn=300,
             )
         except (BotoCoreError, ClientError) as error:
-            return s3_error_response(error, "download URL generation")
+            return s3_error_response(
+                error,
+                "download URL generation",
+            )
 
         return jsonify({
             "download_url": url,
@@ -663,7 +737,9 @@ def delete_receipt(expense_id):
             return jsonify({"error": "Expense not found."}), 404
 
         if not expense.receipt_object_key:
-            return jsonify({"error": "This expense has no receipt."}), 404
+            return jsonify({
+                "error": "This expense has no receipt."
+            }), 404
 
         object_key = expense.receipt_object_key
 
@@ -676,21 +752,25 @@ def delete_receipt(expense_id):
             return s3_error_response(error, "deletion")
 
         expense.receipt_object_key = None
+
         try:
             db.session.commit()
         except SQLAlchemyError:
             db.session.rollback()
             app.logger.exception(
-                "S3 receipt deleted, but database reference could not be cleared"
+                "S3 receipt deleted, but database reference "
+                "could not be cleared"
             )
             return jsonify({
                 "error": (
-                    "Receipt was deleted from S3, but the database update failed. "
-                    "Retry or check the expense record."
+                    "Receipt was deleted from S3, but the database "
+                    "update failed. Retry or check the expense record."
                 )
             }), 500
 
-        return jsonify({"message": "Receipt deleted successfully."}), 200
+        return jsonify({
+            "message": "Receipt deleted successfully."
+        }), 200
 
     except SQLAlchemyError:
         db.session.rollback()
