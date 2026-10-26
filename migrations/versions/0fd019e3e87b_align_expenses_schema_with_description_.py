@@ -18,15 +18,13 @@ depends_on = None
 
 
 def upgrade():
-    # Remove the legacy required title column.
-    # Existing description values are preserved.
+    """Remove the legacy title column from expenses."""
     with op.batch_alter_table("expenses", schema=None) as batch_op:
         batch_op.drop_column("title")
 
 
 def downgrade():
-    # Restore title with a temporary empty-string default so
-    # existing rows can satisfy the NOT NULL constraint.
+    """Restore the title column if this migration is rolled back."""
     with op.batch_alter_table("expenses", schema=None) as batch_op:
         batch_op.add_column(
             sa.Column(
@@ -37,7 +35,7 @@ def downgrade():
             )
         )
 
-    # Remove the default after the column has been restored.
+    # Remove the temporary default after restoring the column.
     with op.batch_alter_table("expenses", schema=None) as batch_op:
         batch_op.alter_column(
             "title",
