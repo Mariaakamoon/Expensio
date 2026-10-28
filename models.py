@@ -7,8 +7,10 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     UniqueConstraint,
+    and_,
     text,
 )
+from sqlalchemy.orm import foreign
 
 db = SQLAlchemy()
 
@@ -44,6 +46,7 @@ class User(db.Model):
         "ImportedTransaction",
         back_populates="user",
         cascade="all, delete-orphan",
+        foreign_keys="ImportedTransaction.user_id",
     )
 
 
@@ -75,6 +78,7 @@ class Expense(db.Model):
     __tablename__ = "expenses"
 
     __table_args__ = (
+        UniqueConstraint("user_id", "id", name="uq_expenses_user_id_id"),
         CheckConstraint("amount > 0", name="ck_expenses_amount_positive"),
         CheckConstraint(
             "source IN ('manual', 'csv')", name="ck_expenses_source"
@@ -114,8 +118,15 @@ class Expense(db.Model):
 
     user = db.relationship("User", back_populates="expenses")
     category = db.relationship("Category", back_populates="expenses")
+
     imported_transactions = db.relationship(
-        "ImportedTransaction", back_populates="expense"
+        "ImportedTransaction",
+        back_populates="expense",
+        primaryjoin=lambda: and_(
+            Expense.user_id == ImportedTransaction.user_id,
+            Expense.id == foreign(ImportedTransaction.expense_id),
+        ),
+        foreign_keys=lambda: [ImportedTransaction.expense_id],
     )
 
 
@@ -180,7 +191,9 @@ class ImportJob(db.Model):
     __tablename__ = "import_jobs"
 
     __table_args__ = (
-        UniqueConstraint("user_id", "id", name="uq_import_jobs_user_id_id"),
+        UniqueConstraint(
+            "user_id", "id", name="uq_import_jobs_user_id_id"
+        ),
         CheckConstraint(
             "status IN ('queued', 'processing', 'completed', 'failed')",
             name="ck_import_jobs_status",
@@ -229,10 +242,16 @@ class ImportJob(db.Model):
     )
 
     user = db.relationship("User", back_populates="import_jobs")
+
     imported_transactions = db.relationship(
         "ImportedTransaction",
         back_populates="import_job",
         cascade="all, delete-orphan",
+        primaryjoin=lambda: and_(
+            ImportJob.user_id == ImportedTransaction.user_id,
+            ImportJob.id == foreign(ImportedTransaction.import_job_id),
+        ),
+        foreign_keys=lambda: [ImportedTransaction.import_job_id],
     )
 
 
@@ -252,6 +271,12 @@ class ImportedTransaction(db.Model):
         ),
         Index("ix_imported_transactions_job", "import_job_id"),
         ForeignKeyConstraint(
+            ["user_id", "expense_id"],
+            ["expenses.user_id", "expenses.id"],
+            ondelete="RESTRICT",
+            name="fk_imported_transactions_user_expense_owner",
+        ),
+        ForeignKeyConstraint(
             ["user_id", "import_job_id"],
             ["import_jobs.user_id", "import_jobs.id"],
             ondelete="CASCADE",
@@ -266,11 +291,7 @@ class ImportedTransaction(db.Model):
         nullable=False,
     )
     import_job_id = db.Column(db.BigInteger, nullable=False)
-    expense_id = db.Column(
-        db.BigInteger,
-        db.ForeignKey("expenses.id", ondelete="SET NULL"),
-        nullable=True,
-    )
+    expense_id = db.Column(db.BigInteger, nullable=True)
     transaction_date = db.Column(db.Date, nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -280,10 +301,28 @@ class ImportedTransaction(db.Model):
         db.DateTime(timezone=True), nullable=False, default=utc_now
     )
 
-    user = db.relationship("User", back_populates="imported_transactions")
-    import_job = db.relationship(
-        "ImportJob", back_populates="imported_transactions"
+    user = db.relationship(
+        "User",
+        back_populates="imported_transactions",
+        foreign_keys=[user_id],
     )
+
+    import_job = db.relationship(
+        "ImportJob",
+        back_populates="imported_transactions",
+        primaryjoin=lambda: and_(
+            ImportJob.user_id == ImportedTransaction.user_id,
+            ImportJob.id == foreign(ImportedTransaction.import_job_id),
+        ),
+        foreign_keys=[import_job_id],
+    )
+
     expense = db.relationship(
-        "Expense", back_populates="imported_transactions"
+        "Expense",
+        back_populates="imported_transactions",
+        primaryjoin=lambda: and_(
+            Expense.user_id == ImportedTransaction.user_id,
+            Expense.id == foreign(ImportedTransaction.expense_id),
+        ),
+        foreign_keys=[expense_id],
     )

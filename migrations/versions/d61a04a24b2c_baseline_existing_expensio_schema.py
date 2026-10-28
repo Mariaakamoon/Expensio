@@ -5,6 +5,7 @@ Revision ID: d61a04a24b2c
 Revises:
 Create Date: 2026-10-25 22:07:18.718661
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -35,10 +36,16 @@ def upgrade():
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("name", sa.String(length=80), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "id", name="uq_categories_user_id_id"),
-        sa.UniqueConstraint("user_id", "name", name="uq_categories_user_name"),
+        sa.UniqueConstraint(
+            "user_id", "id", name="uq_categories_user_id_id"
+        ),
+        sa.UniqueConstraint(
+            "user_id", "name", name="uq_categories_user_name"
+        ),
     )
 
     op.create_table(
@@ -74,14 +81,22 @@ def upgrade():
             "total_rows >= 0",
             name="ck_import_jobs_total_rows_nonnegative",
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "id", name="uq_import_jobs_user_id_id"),
+        sa.UniqueConstraint(
+            "user_id", "id", name="uq_import_jobs_user_id_id"
+        ),
     )
     with op.batch_alter_table("import_jobs") as batch_op:
-        batch_op.create_index("ix_import_jobs_status", ["status"], unique=False)
         batch_op.create_index(
-            "ix_import_jobs_user_created", ["user_id", "created_at"], unique=False
+            "ix_import_jobs_status", ["status"], unique=False
+        )
+        batch_op.create_index(
+            "ix_import_jobs_user_created",
+            ["user_id", "created_at"],
+            unique=False,
         )
 
     op.create_table(
@@ -90,21 +105,29 @@ def upgrade():
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("category_id", sa.BigInteger(), nullable=True),
         sa.Column("month", sa.Date(), nullable=False),
-        sa.Column("amount_limit", sa.Numeric(precision=12, scale=2), nullable=False),
+        sa.Column(
+            "amount_limit",
+            sa.Numeric(precision=12, scale=2),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
             "EXTRACT(DAY FROM month) = 1",
             name="ck_budgets_month_first_day",
         ),
-        sa.CheckConstraint("amount_limit > 0", name="ck_budgets_amount_positive"),
+        sa.CheckConstraint(
+            "amount_limit > 0", name="ck_budgets_amount_positive"
+        ),
         sa.ForeignKeyConstraint(
             ["user_id", "category_id"],
             ["categories.user_id", "categories.id"],
             name="fk_budgets_user_category_owner",
             ondelete="RESTRICT",
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("budgets") as batch_op:
@@ -137,24 +160,37 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
-            "source IN ('manual', 'csv')", name="ck_expenses_source"
+            "source IN ('manual', 'csv')",
+            name="ck_expenses_source",
         ),
-        sa.CheckConstraint("amount > 0", name="ck_expenses_amount_positive"),
+        sa.CheckConstraint(
+            "amount > 0",
+            name="ck_expenses_amount_positive",
+        ),
         sa.ForeignKeyConstraint(
             ["user_id", "category_id"],
             ["categories.user_id", "categories.id"],
             name="fk_expenses_user_category_owner",
             ondelete="RESTRICT",
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "user_id", "id", name="uq_expenses_user_id_id"
+        ),
     )
     with op.batch_alter_table("expenses") as batch_op:
         batch_op.create_index(
-            "ix_expenses_user_category", ["user_id", "category_id"], unique=False
+            "ix_expenses_user_category",
+            ["user_id", "category_id"],
+            unique=False,
         )
         batch_op.create_index(
-            "ix_expenses_user_date", ["user_id", "expense_date"], unique=False
+            "ix_expenses_user_date",
+            ["user_id", "expense_date"],
+            unique=False,
         )
 
     op.create_table(
@@ -170,7 +206,10 @@ def upgrade():
         sa.Column("deduplication_key", sa.String(length=64), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["expense_id"], ["expenses.id"], ondelete="SET NULL"
+            ["user_id", "expense_id"],
+            ["expenses.user_id", "expenses.id"],
+            name="fk_imported_transactions_user_expense_owner",
+            ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
             ["user_id", "import_job_id"],
@@ -178,7 +217,9 @@ def upgrade():
             name="fk_imported_transactions_user_job_owner",
             ondelete="CASCADE",
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "user_id",
@@ -188,7 +229,9 @@ def upgrade():
     )
     with op.batch_alter_table("imported_transactions") as batch_op:
         batch_op.create_index(
-            "ix_imported_transactions_job", ["import_job_id"], unique=False
+            "ix_imported_transactions_job",
+            ["import_job_id"],
+            unique=False,
         )
         batch_op.create_index(
             "ix_imported_transactions_user_date",

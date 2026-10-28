@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from csv_import import validate_csv
-
+import json
 import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
-from models import db, User, Category, Expense
+from models import db, User, Category, Expense, ImportJob
 
 load_dotenv()
 
@@ -35,6 +35,9 @@ AWS_REGION = (
 
 S3_RECEIPTS_BUCKET = (
     os.getenv("S3_RECEIPTS_BUCKET", "").strip()
+)
+SQS_CSV_IMPORT_QUEUE_URL = (
+    os.getenv("SQS_CSV_IMPORT_QUEUE_URL", "").strip()
 )
 
 # Receipt upload limits and permitted file extensions.
@@ -264,7 +267,159 @@ def preview_csv_import():
     except OSError:
         app.logger.exception("Failed to read uploaded CSV")
         return jsonify({"error": "Could not read the uploaded CSV file."}), 400
+@app.route("/api/imports/csv/submit", methods=["POST"])
+def submit_csv_import():
+    if not S3_RECEIPTS_BUCKET:
+        return jsonify({
+            "error": "CSV storage is not configured."
+        }), 503
 
+    if not SQS_CSV_IMPORT_QUEUE_URL:
+        return jsonify({
+            "error": (
+                "CSV import queue is not configured yet. "
+                "Configure SQS_CSV_IMPORT_QUEUE_URL first."
+            )
+        }), 503
+
+    uploaded_file = request.files.get("file")
+
+    if uploaded_file is None or not uploaded_file.filename:
+        return jsonify({
+            "error": "Upload a CSV file using the 'file' field."
+        }), 400
+
+    if not uploaded_file.filename.lower().endswith(".csv"):
+        return jsonify({
+            "error": "Only .csv files are accepted."
+        }), 400
+
+    try:
+        raw_content = uploaded_file.stream.read(
+            5 * 1024 * 1024 + 1
+        )
+
+        if len(raw_content) > 5 * 1024 * 1024:
+            return jsonify({
+                "error": "CSV file must be 5 MiB or smaller."
+            }), 413
+
+        try:
+            csv_content = raw_content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            return jsonify({
+                "error": "CSV must use UTF-8 encoding."
+            }), 400
+
+        result = validate_csv(csv_content)
+
+        expense_count = len(result["valid_transactions"])
+        credit_count = len(result["credits"])
+        error_count = len(result["errors"])
+
+        if expense_count == 0:
+            return jsonify({
+                "error": (
+                    "The CSV contains no valid expense rows to import."
+                ),
+                "credit_count": credit_count,
+                "errors": result["errors"],
+            }), 400
+
+        user = get_dev_user()
+        object_key = (
+            f"csv-imports/{user.id}/{uuid.uuid4().hex}.csv"
+        )
+
+        s3 = get_s3_client()
+        sqs = boto3.client(
+            "sqs",
+            region_name=AWS_REGION,
+        )
+
+        # Store the original CSV privately in S3.
+        s3.put_object(
+            Bucket=S3_RECEIPTS_BUCKET,
+            Key=object_key,
+            Body=raw_content,
+            ContentType="text/csv",
+            ServerSideEncryption="AES256",
+        )
+
+        job = ImportJob(
+            user_id=user.id,
+            s3_object_key=object_key,
+            status="queued",
+            total_rows=expense_count + credit_count + error_count,
+            imported_rows=0,
+            duplicate_rows=0,
+            invalid_rows=error_count,
+        )
+
+        try:
+            db.session.add(job)
+            db.session.commit()
+
+            # The worker will use this ID to find the import job.
+            sqs.send_message(
+                QueueUrl=SQS_CSV_IMPORT_QUEUE_URL,
+                MessageBody=json.dumps({
+                    "import_job_id": job.id,
+                    "user_id": user.id,
+                    "s3_object_key": object_key,
+                }),
+            )
+
+        except Exception:
+            db.session.rollback()
+            app.logger.exception(
+                "CSV import job creation or queue submission failed"
+            )
+
+            # If the job exists, mark it failed rather than leaving
+            # it queued when SQS submission did not succeed.
+            try:
+                failed_job = db.session.get(ImportJob, job.id)
+                if failed_job is not None:
+                    failed_job.status = "failed"
+                    failed_job.error_summary = (
+                        "Could not submit the job to the import queue."
+                    )
+                    db.session.commit()
+            except SQLAlchemyError:
+                db.session.rollback()
+                app.logger.exception(
+                    "Could not update failed CSV import job"
+                )
+
+            return jsonify({
+                "error": (
+                    "Could not submit the CSV import. "
+                    "Check the application logs."
+                )
+            }), 502
+
+        return jsonify({
+            "message": "CSV import submitted successfully.",
+            "import_job_id": job.id,
+            "status": job.status,
+            "expense_count": expense_count,
+            "credit_count": credit_count,
+            "error_count": error_count,
+        }), 202
+
+    except (BotoCoreError, ClientError):
+        app.logger.exception("S3 operation failed during CSV submission")
+        return jsonify({
+            "error": "Could not store the CSV in S3."
+        }), 502
+
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Database error during CSV submission")
+        return jsonify({
+            "error": "Database operation failed."
+        }), 500
 
 @app.route("/api/expenses", methods=["GET", "POST"])
 def expenses():
