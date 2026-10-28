@@ -27,6 +27,7 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
+
     with op.batch_alter_table("users") as batch_op:
         batch_op.create_index("ix_users_email", ["email"], unique=True)
 
@@ -89,6 +90,7 @@ def upgrade():
             "user_id", "id", name="uq_import_jobs_user_id_id"
         ),
     )
+
     with op.batch_alter_table("import_jobs") as batch_op:
         batch_op.create_index(
             "ix_import_jobs_status", ["status"], unique=False
@@ -130,6 +132,7 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+
     with op.batch_alter_table("budgets") as batch_op:
         batch_op.create_index(
             "uq_budgets_user_month_category",
@@ -181,6 +184,7 @@ def upgrade():
             "user_id", "id", name="uq_expenses_user_id_id"
         ),
     )
+
     with op.batch_alter_table("expenses") as batch_op:
         batch_op.create_index(
             "ix_expenses_user_category",
@@ -205,11 +209,12 @@ def upgrade():
         sa.Column("payment_method", sa.String(length=40), nullable=True),
         sa.Column("deduplication_key", sa.String(length=64), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        # Original FK; the ownership migration replaces this with a composite FK.
         sa.ForeignKeyConstraint(
-            ["user_id", "expense_id"],
-            ["expenses.user_id", "expenses.id"],
-            name="fk_imported_transactions_user_expense_owner",
-            ondelete="RESTRICT",
+            ["expense_id"],
+            ["expenses.id"],
+            name="imported_transactions_expense_id_fkey",
+            ondelete="SET NULL",
         ),
         sa.ForeignKeyConstraint(
             ["user_id", "import_job_id"],
@@ -227,6 +232,7 @@ def upgrade():
             name="uq_imported_transactions_user_dedupe",
         ),
     )
+
     with op.batch_alter_table("imported_transactions") as batch_op:
         batch_op.create_index(
             "ix_imported_transactions_job",
