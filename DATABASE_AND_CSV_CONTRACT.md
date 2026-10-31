@@ -99,7 +99,8 @@
 
 - Add an index on `(user_id, created_at)` and on `status`.
 - `total_rows` counts data rows, excluding the header.
-- `imported_rows` counts rows that successfully created expenses.
+- `imported_rows` counts valid rows saved to import history, including positive
+  credit/refund rows. Negative rows additionally create expenses.
 - `duplicate_rows` counts valid rows skipped because they match an existing transaction.
 - `invalid_rows` counts rows rejected by validation.
 - A terminal `completed` job may have invalid and/or duplicate rows if valid rows were processed.
@@ -181,7 +182,7 @@ Every message body must be a JSON object with:
 {
   "job_id": 123,
   "user_id": 456,
-  "object_key": "imports/user-456/job-123.csv",
+  "object_key": "csv-imports/456/random-id.csv",
   "event_type": "csv_import_requested",
   "schema_version": 1
 }
@@ -191,6 +192,9 @@ Every message body must be a JSON object with:
 - `object_key` is the exact private S3 object key uploaded for the job.
 - `event_type` must be `csv_import_requested` in version 1.
 - `schema_version` must be the integer `1`.
+- The current Flask publisher sends this exact schema. The worker also
+  accepts the earlier aliases `import_job_id` and `s3_object_key` so existing
+  queued messages remain compatible during rollout.
 - Treat message values as untrusted. Load the job from PostgreSQL and verify that the job's `user_id` and `s3_object_key` match the message. Do not authorize access based only on the message's `user_id`.
 - Never include passwords, credentials, access tokens or other secrets in the message.
 
@@ -204,7 +208,8 @@ Every message body must be a JSON object with:
 6. Process rows using database transactions and uniqueness constraints to protect against retries.
 7. Save row counts and an error summary.
 8. Mark the job `completed` after a deliberate terminal processing outcome, including a partially invalid file; mark it `failed` for an unrecoverable job-level error.
-9. Send an SNS notification for the configured terminal outcome.
+9. Send an SNS notification for the configured terminal outcome when
+   `SNS_IMPORT_TOPIC_ARN` is configured.
 10. Delete/acknowledge the SQS message only after successful processing or a deliberately handled terminal outcome.
 
 - Temporary infrastructure/database failures must be retried and must not be marked as successful.
@@ -245,4 +250,3 @@ Every message body must be a JSON object with:
 - Maria: approved overall design and decisions in team discussion.
 - Aarya: approved overall design and decisions in team discussion.
 - Exact schema and CSV rules in this document should be reviewed by both teammates before implementation.
-

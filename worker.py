@@ -10,7 +10,13 @@ from dotenv import load_dotenv
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app import app, AWS_REGION, S3_RECEIPTS_BUCKET, get_s3_client
+from app import (
+    app,
+    AWS_REGION,
+    SNS_IMPORT_TOPIC_ARN,
+    S3_RECEIPTS_BUCKET,
+    get_s3_client,
+)
 from csv_import import validate_csv
 from models import db, Category, Expense, ImportJob, ImportedTransaction
 
@@ -29,6 +35,26 @@ MAX_CSV_BYTES = 5 * 1024 * 1024
 
 class PermanentImportError(ValueError):
     """An import error that will not be fixed by retrying the same file."""
+
+
+def publish_import_notification(job, status):
+    """Publish a minimal result event when an existing topic is configured."""
+    if not SNS_IMPORT_TOPIC_ARN:
+        return
+
+    sns = boto3.client("sns", region_name=AWS_REGION)
+    sns.publish(
+        TopicArn=SNS_IMPORT_TOPIC_ARN,
+        Subject=f"Expensio CSV import {status}",
+        Message=json.dumps({
+            "import_job_id": job.id,
+            "status": status,
+            "total_rows": job.total_rows,
+            "imported_rows": job.imported_rows,
+            "duplicate_rows": job.duplicate_rows,
+            "invalid_rows": job.invalid_rows,
+        }),
+    )
 
 
 def get_or_create_category(user_id, category_name):
@@ -82,6 +108,8 @@ def process_import_message(message):
     job_id = body.get("job_id", body.get("import_job_id"))
     user_id = body.get("user_id")
     object_key = body.get("object_key", body.get("s3_object_key"))
+    event_type = body.get("event_type")
+    schema_version = body.get("schema_version")
 
     if (
         not isinstance(job_id, int)
@@ -92,6 +120,14 @@ def process_import_message(message):
         or user_id <= 0
         or not isinstance(object_key, str)
         or not object_key.strip()
+        or (
+            event_type is not None
+            and event_type != "csv_import_requested"
+        )
+        or (
+            schema_version is not None
+            and schema_version != 1
+        )
     ):
         raise ValueError("Invalid CSV import message fields.")
 
@@ -204,9 +240,9 @@ def process_import_message(message):
                         db.session.add(transaction)
                         db.session.flush()
 
-                    # Increment counts only after the savepoint succeeds.
-                    if item["amount"] < 0:
-                        imported_count += 1
+                    # Increment only after the savepoint succeeds. Credits
+                    # are imported history rows even without an expense.
+                    imported_count += 1
 
                 except IntegrityError:
                     # A uniqueness conflict can indicate a concurrent import.
@@ -246,6 +282,13 @@ def process_import_message(message):
                 duplicate_count,
                 invalid_count,
             )
+            try:
+                publish_import_notification(job, "completed")
+            except (BotoCoreError, ClientError):
+                logger.exception(
+                    "SNS notification failed after job %s completed",
+                    job_id,
+                )
             return "ack"
 
         except (BotoCoreError, ClientError):
@@ -264,6 +307,13 @@ def process_import_message(message):
                     job.status = "failed"
                     job.error_summary = str(exc)[:1000]
                     db.session.commit()
+                    try:
+                        publish_import_notification(job, "failed")
+                    except (BotoCoreError, ClientError):
+                        logger.exception(
+                            "SNS failure notification failed for job %s",
+                            job_id,
+                        )
             except SQLAlchemyError:
                 db.session.rollback()
                 logger.exception(

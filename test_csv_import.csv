@@ -1,0 +1,16 @@
+transaction_date,amount,description,payment_method,category
+2026-10-20,-250.00,Demo lunch,UPI,Food
+2026-10-21,-450.00,Demo travel,Card,Transport
+2026-10-21,-120.00,Coffee with friends,UPI,Food
+2026-10-22,-899.00,Internet bill,Net Banking,Bills
+2026-10-22,-1500.00,College supplies,Card,Education
+2026-10-23,-300.00,Groceries,UPI,Food
+2026-10-23,-180.00,Auto fare,Cash,Transport
+2026-10-24,-699.00,Mobile recharge,UPI,Bills
+2026-10-24,-2200.00,Monthly shopping,Card,Shopping
+2026-10-25,-350.00,Movie ticket,UPI,Entertainment
+2026-10-25,-100.00,Snacks,Cash,Food
+2026-10-26,-550.00,Fuel expense,UPI,Transport
+2026-10-26,5000.00,Freelance payment,UPI,Income
+2026-10-27,-750.00,Electricity bill,Net Banking,Bills
+2026-10-27,-400.00,Pharmacy purchase,UPI,Healthcare

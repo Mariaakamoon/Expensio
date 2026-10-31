@@ -1,0 +1,17 @@
+[Unit]
+Description=Expensio Flask web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<approved-ec2-linux-user>
+Group=<approved-ec2-linux-user>
+WorkingDirectory=/opt/expensio
+EnvironmentFile=/etc/expensio/expensio.env
+ExecStart=/opt/expensio/.venv/bin/gunicorn --bind 127.0.0.1:5001 --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -31,16 +31,28 @@ class User(db.Model):
     )
 
     categories = db.relationship(
-        "Category", back_populates="user", cascade="all, delete-orphan"
+        "Category",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="Category.user_id",
     )
     expenses = db.relationship(
-        "Expense", back_populates="user", cascade="all, delete-orphan"
+        "Expense",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="Expense.user_id",
     )
     budgets = db.relationship(
-        "Budget", back_populates="user", cascade="all, delete-orphan"
+        "Budget",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="Budget.user_id",
     )
     import_jobs = db.relationship(
-        "ImportJob", back_populates="user", cascade="all, delete-orphan"
+        "ImportJob",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="ImportJob.user_id",
     )
     imported_transactions = db.relationship(
         "ImportedTransaction",
@@ -69,9 +81,29 @@ class Category(db.Model):
         db.DateTime(timezone=True), nullable=False, default=utc_now
     )
 
-    user = db.relationship("User", back_populates="categories")
-    expenses = db.relationship("Expense", back_populates="category")
-    budgets = db.relationship("Budget", back_populates="category")
+    user = db.relationship(
+        "User",
+        back_populates="categories",
+        foreign_keys=[user_id],
+    )
+    expenses = db.relationship(
+        "Expense",
+        back_populates="category",
+        primaryjoin=lambda: and_(
+            Category.id == foreign(Expense.category_id),
+            Category.user_id == Expense.user_id,
+        ),
+        foreign_keys="Expense.category_id",
+    )
+    budgets = db.relationship(
+        "Budget",
+        back_populates="category",
+        primaryjoin=lambda: and_(
+            Category.id == foreign(Budget.category_id),
+            Category.user_id == Budget.user_id,
+        ),
+        foreign_keys="Budget.category_id",
+    )
 
 
 class Expense(db.Model):
@@ -116,8 +148,20 @@ class Expense(db.Model):
         onupdate=utc_now,
     )
 
-    user = db.relationship("User", back_populates="expenses")
-    category = db.relationship("Category", back_populates="expenses")
+    user = db.relationship(
+        "User",
+        back_populates="expenses",
+        foreign_keys=[user_id],
+    )
+    category = db.relationship(
+        "Category",
+        back_populates="expenses",
+        primaryjoin=lambda: and_(
+            foreign(Expense.category_id) == Category.id,
+            Expense.user_id == Category.user_id,
+        ),
+        foreign_keys=[category_id],
+    )
 
     imported_transactions = db.relationship(
         "ImportedTransaction",
@@ -183,8 +227,20 @@ class Budget(db.Model):
         onupdate=utc_now,
     )
 
-    user = db.relationship("User", back_populates="budgets")
-    category = db.relationship("Category", back_populates="budgets")
+    user = db.relationship(
+        "User",
+        back_populates="budgets",
+        foreign_keys=[user_id],
+    )
+    category = db.relationship(
+        "Category",
+        back_populates="budgets",
+        primaryjoin=lambda: and_(
+            foreign(Budget.category_id) == Category.id,
+            Budget.user_id == Category.user_id,
+        ),
+        foreign_keys=[category_id],
+    )
 
 
 class ImportJob(db.Model):
@@ -241,7 +297,11 @@ class ImportJob(db.Model):
         onupdate=utc_now,
     )
 
-    user = db.relationship("User", back_populates="import_jobs")
+    user = db.relationship(
+        "User",
+        back_populates="import_jobs",
+        foreign_keys=[user_id],
+    )
 
     imported_transactions = db.relationship(
         "ImportedTransaction",

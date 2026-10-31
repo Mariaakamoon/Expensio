@@ -39,6 +39,7 @@ S3_RECEIPTS_BUCKET = (
 SQS_CSV_IMPORT_QUEUE_URL = (
     os.getenv("SQS_CSV_IMPORT_QUEUE_URL", "").strip()
 )
+SNS_IMPORT_TOPIC_ARN = os.getenv("SNS_IMPORT_TOPIC_ARN", "").strip()
 
 # Receipt upload limits and permitted file extensions.
 MAX_RECEIPT_SIZE = 5 * 1024 * 1024  # 5 MiB
@@ -267,6 +268,36 @@ def preview_csv_import():
     except OSError:
         app.logger.exception("Failed to read uploaded CSV")
         return jsonify({"error": "Could not read the uploaded CSV file."}), 400
+
+
+@app.route("/api/imports/<int:job_id>", methods=["GET"])
+def csv_import_status(job_id):
+    user = get_dev_user()
+    job = db.session.execute(
+        select(ImportJob).where(
+            ImportJob.id == job_id,
+            ImportJob.user_id == user.id,
+        )
+    ).scalar_one_or_none()
+
+    if job is None:
+        return jsonify({"error": "Import job not found."}), 404
+
+    return jsonify({
+        "import_job_id": job.id,
+        "status": job.status,
+        "total_rows": job.total_rows,
+        "imported_rows": job.imported_rows,
+        "duplicate_rows": job.duplicate_rows,
+        "invalid_rows": job.invalid_rows,
+        "error_summary": (
+            job.error_summary if job.status == "failed" else None
+        ),
+        "created_at": job.created_at.isoformat(),
+        "updated_at": job.updated_at.isoformat(),
+    }), 200
+
+
 @app.route("/api/imports/csv/submit", methods=["POST"])
 def submit_csv_import():
     if not S3_RECEIPTS_BUCKET:
@@ -317,10 +348,10 @@ def submit_csv_import():
         credit_count = len(result["credits"])
         error_count = len(result["errors"])
 
-        if expense_count == 0:
+        if expense_count + credit_count == 0:
             return jsonify({
                 "error": (
-                    "The CSV contains no valid expense rows to import."
+                    "The CSV contains no valid transactions to import."
                 ),
                 "credit_count": credit_count,
                 "errors": result["errors"],
@@ -364,17 +395,29 @@ def submit_csv_import():
             sqs.send_message(
                 QueueUrl=SQS_CSV_IMPORT_QUEUE_URL,
                 MessageBody=json.dumps({
-                    "import_job_id": job.id,
+                    "job_id": job.id,
                     "user_id": user.id,
-                    "s3_object_key": object_key,
+                    "object_key": object_key,
+                    "event_type": "csv_import_requested",
+                    "schema_version": 1,
                 }),
             )
 
-        except Exception:
+        except (BotoCoreError, ClientError, SQLAlchemyError):
             db.session.rollback()
             app.logger.exception(
                 "CSV import job creation or queue submission failed"
             )
+
+            try:
+                s3.delete_object(
+                    Bucket=S3_RECEIPTS_BUCKET,
+                    Key=object_key,
+                )
+            except (BotoCoreError, ClientError):
+                app.logger.exception(
+                    "Could not clean up CSV object after submission failure"
+                )
 
             # If the job exists, mark it failed rather than leaving
             # it queued when SQS submission did not succeed.

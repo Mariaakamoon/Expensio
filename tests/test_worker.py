@@ -201,3 +201,26 @@ def test_worker_does_not_delete_message_when_processing_raises():
     fake_sqs.delete_message.assert_not_called()
 
 
+def test_sns_notification_contains_only_job_counts():
+    from types import SimpleNamespace
+
+    fake_sns = __import__(
+        "unittest.mock", fromlist=["MagicMock"]
+    ).MagicMock()
+    job = SimpleNamespace(
+        id=42,
+        total_rows=3,
+        imported_rows=2,
+        duplicate_rows=1,
+        invalid_rows=0,
+    )
+
+    with patch("worker.SNS_IMPORT_TOPIC_ARN", "arn:aws:sns:test:topic"), \
+         patch("worker.boto3.client", return_value=fake_sns):
+        from worker import publish_import_notification
+        publish_import_notification(job, "completed")
+
+    message = fake_sns.publish.call_args.kwargs["Message"]
+    assert "description" not in message
+    assert '"import_job_id": 42' in message
+

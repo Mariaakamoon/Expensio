@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -515,6 +514,29 @@
 
         .receipt-file-input { display: none; }
 
+        .import-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .import-stat {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: #faf9ff;
+            text-align: center;
+        }
+
+        .import-stat strong { display: block; font-size: 20px; color: var(--primary); }
+        .import-stat span { color: var(--muted); font-size: 11px; }
+        .import-errors { margin: 12px 0; color: var(--danger); font-size: 12px; }
+        .import-status { margin-top: 13px; color: var(--muted); font-size: 13px; }
+        .import-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .import-actions .primary { flex: 1; min-width: 180px; }
+        .import-actions .filter-clear { margin-top: 21px; }
+
         footer {
             text-align: center;
             padding: 22px;
@@ -539,6 +561,7 @@
         @media (max-width: 420px) {
             .filter-dates { grid-template-columns: 1fr; gap: 0; }
             .filter-actions { flex-direction: column; }
+            .import-summary { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 390px) {
@@ -610,6 +633,32 @@
                     <p class="empty">Loading monthly spending...</p>
                 </div>
             </div>
+        </section>
+
+        <section class="panel" style="margin-bottom: 25px;">
+            <div class="panel-heading">
+                <div class="heading-icon mint">⇅</div>
+                <div>
+                    <h2>Import transactions</h2>
+                    <p class="panel-subtitle">Preview a CSV, review validation, then import it safely.</p>
+                </div>
+            </div>
+            <label for="csv-file">CSV file</label>
+            <input id="csv-file" type="file" accept=".csv,text/csv">
+            <p class="panel-subtitle">Use transaction_date, amount, description, payment_method and category.</p>
+            <div class="import-summary" id="import-summary" hidden>
+                <div class="import-stat"><strong id="csv-expenses">0</strong><span>Expenses</span></div>
+                <div class="import-stat"><strong id="csv-credits">0</strong><span>Income / credits</span></div>
+                <div class="import-stat"><strong id="csv-valid">0</strong><span>Valid rows</span></div>
+                <div class="import-stat"><strong id="csv-invalid">0</strong><span>Invalid rows</span></div>
+            </div>
+            <div id="csv-errors" class="import-errors" aria-live="polite"></div>
+            <div class="import-actions">
+                <button class="primary" id="preview-csv" type="button">Preview CSV</button>
+                <button class="filter-clear" id="import-csv" type="button" disabled>Import Transactions</button>
+                <button class="filter-clear" id="refresh-import" type="button" hidden>Refresh status</button>
+            </div>
+            <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
         </section>
 
         <div class="layout">
@@ -727,6 +776,16 @@
         const filterEndDate = document.getElementById("filter-end-date");
         const applyFiltersButton = document.getElementById("apply-filters");
         const clearFiltersButton = document.getElementById("clear-filters");
+        const csvFileInput = document.getElementById("csv-file");
+        const previewCsvButton = document.getElementById("preview-csv");
+        const importCsvButton = document.getElementById("import-csv");
+        const refreshImportButton = document.getElementById("refresh-import");
+        const importSummary = document.getElementById("import-summary");
+        const csvErrors = document.getElementById("csv-errors");
+        const importStatus = document.getElementById("import-status");
+        let selectedCsvFile = null;
+        let currentImportJobId = null;
+        let importPollTimer = null;
 
         const MAX_RECEIPT_SIZE = 5 * 1024 * 1024;
         const ALLOWED_RECEIPT_EXTENSIONS = ["jpg", "jpeg", "png", "pdf"];
@@ -769,6 +828,119 @@
 
             return result;
         }
+
+        function renderCsvPreview(result) {
+            document.getElementById("csv-expenses").textContent = result.expense_count;
+            document.getElementById("csv-credits").textContent = result.credit_count;
+            document.getElementById("csv-valid").textContent =
+                result.expense_count + result.credit_count;
+            document.getElementById("csv-invalid").textContent = result.error_count;
+            importSummary.hidden = false;
+            csvErrors.replaceChildren();
+
+            if (result.errors.length) {
+                const list = document.createElement("ul");
+                result.errors.forEach(item => {
+                    const error = document.createElement("li");
+                    error.textContent = `Row ${item.row}: ${item.error}`;
+                    list.appendChild(error);
+                });
+                csvErrors.appendChild(list);
+            } else {
+                csvErrors.textContent = "All rows passed validation.";
+                csvErrors.style.color = "#218666";
+            }
+
+            importCsvButton.disabled = result.expense_count + result.credit_count === 0;
+            importStatus.textContent = "Preview ready. Invalid rows will be skipped and reported.";
+        }
+
+        async function previewCsv() {
+            selectedCsvFile = csvFileInput.files[0];
+            if (!selectedCsvFile) {
+                throw new Error("Choose a CSV file first.");
+            }
+
+            const formData = new FormData();
+            formData.append("file", selectedCsvFile);
+            previewCsvButton.disabled = true;
+            importCsvButton.disabled = true;
+            csvErrors.textContent = "";
+            try {
+                const response = await fetch("/api/imports/csv/preview", {
+                    method: "POST",
+                    body: formData
+                });
+                renderCsvPreview(await readResponse(response));
+            } finally {
+                previewCsvButton.disabled = false;
+            }
+        }
+
+        async function refreshImportStatus() {
+            if (!currentImportJobId) return;
+            const response = await fetch(`/api/imports/${currentImportJobId}`);
+            const result = await readResponse(response);
+            importStatus.textContent =
+                `Job #${result.import_job_id}: ${result.status}. ` +
+                `Imported ${result.imported_rows} of ${result.total_rows}; ` +
+                `${result.duplicate_rows} duplicate, ${result.invalid_rows} rejected.`;
+
+            if (result.status === "completed" || result.status === "failed") {
+                if (importPollTimer) clearInterval(importPollTimer);
+                importPollTimer = null;
+                refreshImportButton.hidden = false;
+                if (result.status === "completed") {
+                    await loadExpenses();
+                } else if (result.error_summary) {
+                    importStatus.textContent += ` ${result.error_summary}`;
+                }
+            }
+        }
+
+        async function submitCsvImport() {
+            if (!selectedCsvFile) throw new Error("Preview a CSV file first.");
+            const formData = new FormData();
+            formData.append("file", selectedCsvFile);
+            importCsvButton.disabled = true;
+            try {
+                const response = await fetch("/api/imports/csv/submit", {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await readResponse(response);
+                currentImportJobId = result.import_job_id;
+                refreshImportButton.hidden = false;
+                importStatus.textContent =
+                    `Job #${currentImportJobId}: queued. Waiting for the worker...`;
+                if (importPollTimer) clearInterval(importPollTimer);
+                await refreshImportStatus();
+                importPollTimer = setInterval(refreshImportStatus, 3000);
+            } finally {
+                importCsvButton.disabled = false;
+            }
+        }
+
+        previewCsvButton.addEventListener("click", async () => {
+            try { await previewCsv(); } catch (error) {
+                csvErrors.textContent = error.message;
+                csvErrors.style.color = "#d84d63";
+            }
+        });
+
+        importCsvButton.addEventListener("click", async () => {
+            try { await submitCsvImport(); } catch (error) {
+                importStatus.textContent = error.message;
+                importStatus.style.color = "#d84d63";
+            }
+        });
+
+        refreshImportButton.addEventListener("click", async () => {
+            try { await refreshImportStatus(); } catch (error) {
+                importStatus.textContent = error.message;
+                importStatus.style.color = "#d84d63";
+            }
+        });
         function hasReceipt(expense) {
         return Boolean(
             expense.receipt_object_key ||
